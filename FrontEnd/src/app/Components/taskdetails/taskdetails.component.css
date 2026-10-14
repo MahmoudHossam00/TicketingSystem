@@ -1,0 +1,232 @@
+@import '../ticketdetails/ticketdetails.component.css';
+
+:host {
+  --c-bg: #fffbeb;
+  --c-surface: #ffffff;
+  --c-border: #fde68a;
+  --c-text: #0f172a;
+  --c-muted: #78716c;
+  --c-accent: #d97706;
+  --c-accent-lt: #fef3c7;
+  --c-hover: #fffbeb;
+  --shadow-card: 0 1px 4px rgba(217, 119, 6, 0.08), 0 4px 18px rgba(15, 23, 42, 0.06);
+}
+
+.tk-details-page {
+  background: linear-gradient(180deg, #fffbeb 0%, var(--c-bg) 28%);
+}
+
+.tk-header-card {
+  border-color: #fcd34d;
+  box-shadow: var(--shadow-card);
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+}
+
+.tk-sidebar .td-notes-sidebar,
+.tk-notes-sidebar {
+  border: 1px solid #fcd34d;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
+}
+
+.td-note-input:focus {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.18);
+}
+
+.td-btn-primary {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+.td-btn-primary:hover:not(:disabled) {
+  background: #b45309;
+  border-color: #b45309;
+}
+
+.td-back:hover {
+  color: var(--c-accent);
+}
+
+.tk-state-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tk-state-closed {
+  background: #e7e5e4;
+  color: #57534e;
+  border: 1px solid #d6d3d1;
+}
+
+.tk-state-open {
+  background: #d9f99d;
+  color: #3f6212;
+  border: 1px solid #bef264;
+}
+
+.td-priority.prio-na {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.tk-project-link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.tk-project-link:hover {
+  opacity: 0.88;
+}
+
+.tk-upload-label {
+  cursor: pointer;
+  margin: 0;
+}
+
+.tk-upload-label.tk-upload-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.tk-upload-err {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  color: #dc2626;
+}
+
+/* Same structure as `.td-attachments`; subtle distinction for assignee-uploaded files */
+.tk-assigned-attachments {
+  border-color: #e7e5e4;
+  background: linear-gradient(180deg, #fafaf9 0%, #ffffff 100%);
+}
+
+.tk-assigned-attachments .td-section-label {
+  color: var(--c-muted);
+}
+
+.tk-chat-wrap {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.tk-history-body {
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+}
+
+.tk-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tk-history-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.45rem 0.5rem;
+  background: #fffbeb;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.tk-history-date {
+  font-size: 0.78rem;
+  color: var(--c-muted);
+}
+
+.tk-history-badge {
+  font-size: 0.72rem;
+}
+
+.td-modal-wide {
+  max-width: min(100vw - 2rem, 560px);
+}
+
+.tk-subtasks-card {
+  margin-top: 0.75rem;
+}
+
+.tk-subtask-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tk-subtask-meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--c-muted);
+}
+
+.tk-subtask-kpi-row {
+  margin-top: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.tk-subtask-kpi-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: #155e75;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.tk-subtask-kpi-btn {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.72rem;
+}
+
+.tk-subtask-date {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-family: var(--font);
+  color: var(--c-text);
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.tk-subtask-date:focus {
+  outline: none;
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.18);
+  background: #fff;
+}
+
+.tk-subtask-msg {
+  margin: 0 0 0.65rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+}
+
+.tk-subtask-msg--err {
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+}
+
+.tk-subtask-msg--ok {
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+}

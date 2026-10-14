@@ -1,0 +1,163 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+router-outlet {
+  display: block;
+}
+
+.app-global-call-banner {
+  position: fixed;
+  top: 84px;
+  right: 16px;
+  z-index: 2200;
+  width: min(92vw, 420px);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(160deg, rgba(15, 33, 64, 0.97), rgba(10, 22, 44, 0.96));
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  color: #e6edf8;
+  backdrop-filter: blur(10px);
+}
+
+.app-global-call-live {
+  position: fixed;
+  top: 84px;
+  left: 16px;
+  z-index: 2200;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.62rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(9, 30, 22, 0.95);
+  color: #ddfbe9;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+}
+
+.app-global-call-live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #27d46a;
+  box-shadow: 0 0 0 0 rgba(39, 212, 106, 0.55);
+  animation: app-call-pulse 1.5s infinite;
+}
+
+@keyframes app-call-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(39, 212, 106, 0.55); }
+  70% { box-shadow: 0 0 0 8px rgba(39, 212, 106, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(39, 212, 106, 0); }
+}
+
+.app-global-call-live-text {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.app-call-btn-open {
+  background: #0f62d6;
+  color: #fff;
+}
+
+.app-call-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.app-global-call-error {
+  position: fixed;
+  top: 138px;
+  right: 16px;
+  z-index: 2201;
+  background: rgba(130, 25, 25, 0.95);
+  border: 1px solid rgba(255, 150, 150, 0.35);
+  color: #ffe1e1;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  max-width: min(92vw, 420px);
+}
+
+.app-global-call-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(88, 209, 255, 0.16);
+  color: #8fe2ff;
+  flex-shrink: 0;
+}
+
+.app-global-call-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.app-global-call-title {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.app-global-call-subtitle {
+  margin: 0.12rem 0 0;
+  font-size: 0.78rem;
+  color: #b7c6df;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-global-call-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.app-call-btn {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.36rem 0.58rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.app-call-btn-accept {
+  background: #16a34a;
+  color: #fff;
+}
+
+.app-call-btn-decline {
+  background: #b91c1c;
+  color: #fff;
+}
+
+@media (max-width: 700px) {
+  .app-global-call-banner {
+    top: 72px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+  }
+  .app-global-call-live {
+    top: 156px;
+    left: 8px;
+    right: 8px;
+    justify-content: space-between;
+  }
+  .app-global-call-error {
+    top: 206px;
+    left: 8px;
+    right: 8px;
+    max-width: none;
+  }
+}

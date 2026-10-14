@@ -1,0 +1,170 @@
+<div class="old-tasks">
+  <div class="old-tasks-page-heading" *ngIf="isStandaloneOldTasksRoute">
+    <h1 class="old-tasks-page-title">Old tasks (Excel)</h1>
+    <p class="old-tasks-page-sub">Import history from spreadsheet and browse archived tasks. Admin only.</p>
+  </div>
+
+  <div class="old-tasks-excel">
+    <div class="old-tasks-excel-title">Excel import</div>
+    <p class="old-tasks-excel-hint">Old tasks can only be added by uploading a spreadsheet. Download the template, fill it, then import.</p>
+    <div class="old-tasks-excel-actions">
+      <button type="button" class="old-btn old-btn-secondary" (click)="downloadTemplate()">Download template</button>
+      <label class="old-btn old-btn-primary old-file-label">
+        Choose Excel file
+        <input type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" (change)="onExcelFileSelected($event)" [disabled]="importing()" />
+      </label>
+      <span class="old-tasks-importing" *ngIf="importing()">Importing…</span>
+    </div>
+    <div class="old-tasks-import-banner" *ngIf="importMessage() as msg" [class.old-tasks-import-ok]="!importDetail()" [class.old-tasks-import-warn]="!!importDetail()">
+      <div>{{ msg }}</div>
+      <pre class="old-tasks-import-errors" *ngIf="importDetail()">{{ importDetail() }}</pre>
+    </div>
+  </div>
+
+  <div class="old-tasks-filters">
+    <div class="old-filter-group">
+      <label class="old-filter-label">From</label>
+      <input type="date" class="old-filter-input" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event)" />
+    </div>
+    <div class="old-filter-group">
+      <label class="old-filter-label">To</label>
+      <input type="date" class="old-filter-input" [ngModel]="toDate()" (ngModelChange)="toDate.set($event)" />
+    </div>
+    <div class="old-filter-group">
+      <label class="old-filter-label">Company</label>
+      <select class="old-filter-select" [ngModel]="companyId()" (ngModelChange)="companyId.set($event)">
+        <option value="">All</option>
+        <option *ngFor="let c of companies" [value]="c.id">{{ c.name }}</option>
+      </select>
+    </div>
+    <div class="old-filter-group">
+      <label class="old-filter-label">Record type</label>
+      <select class="old-filter-select" [ngModel]="recordType()" (ngModelChange)="recordType.set($event)">
+        <option value="">All</option>
+        <option value="0">Project</option>
+        <option value="1">Ticket</option>
+      </select>
+    </div>
+    <div class="old-filter-group">
+      <label class="old-filter-label">Issue type</label>
+      <select class="old-filter-select" [ngModel]="issueTypeId()" (ngModelChange)="issueTypeId.set($event)">
+        <option value="">All</option>
+        <option *ngFor="let t of issueTypes" [value]="t.id">{{ t.issueTypeName }}</option>
+      </select>
+    </div>
+    <div class="old-filter-group">
+      <label class="old-filter-label">Submodule</label>
+      <select class="old-filter-select" [ngModel]="relatedSubModuleId()" (ngModelChange)="relatedSubModuleId.set($event)">
+        <option value="">All</option>
+        <option *ngFor="let s of subModules" [value]="s.id">{{ s.name }}</option>
+      </select>
+    </div>
+    <div class="old-filter-group">
+      <label class="old-filter-label">Status</label>
+      <select class="old-filter-select" [ngModel]="issueStatusId()" (ngModelChange)="issueStatusId.set($event)">
+        <option value="">All</option>
+        <option *ngFor="let st of issueStatuses" [value]="st.id">{{ st.name }}</option>
+      </select>
+    </div>
+    <div class="old-filter-group">
+      <label class="old-filter-label">Creator</label>
+      <select class="old-filter-select" [ngModel]="issueCreatorId()" (ngModelChange)="issueCreatorId.set($event)">
+        <option value="">All</option>
+        <option *ngFor="let u of users" [value]="u.id">{{ u.name }}</option>
+      </select>
+    </div>
+    <div class="old-filter-group old-filter-search">
+      <label class="old-filter-label">Search</label>
+      <input type="search" class="old-filter-input" placeholder="Subject, description…" [ngModel]="search()" (ngModelChange)="search.set($event)" />
+    </div>
+    <div class="old-filter-group">
+      <label class="old-filter-label">Sort by</label>
+      <select class="old-filter-select" [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">
+        <option *ngFor="let o of sortByOptions" [ngValue]="o.value">{{ o.label }}</option>
+      </select>
+    </div>
+    <div class="old-filter-group">
+      <label class="old-filter-label">Order</label>
+      <select class="old-filter-select" [ngModel]="sortDirection()" (ngModelChange)="sortDirection.set($event)">
+        <option *ngFor="let o of sortDirOptions" [ngValue]="o.value">{{ o.label }}</option>
+      </select>
+    </div>
+    <button type="button" class="old-btn old-btn-accent" (click)="applyFilters()">Apply</button>
+    <button type="button" class="old-btn old-btn-ghost" *ngIf="hasActiveFilters" (click)="clearFilters()">Clear</button>
+  </div>
+
+  <div class="old-tasks-table-card">
+    <div *ngIf="isLoading()" class="old-tasks-loading">Loading…</div>
+    <div *ngIf="loadError() && !isLoading()" class="old-tasks-error">{{ loadError() }}</div>
+
+    <div class="old-table-wrap" *ngIf="!isLoading() && !loadError()">
+      <table class="old-table">
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Record type</th>
+            <th>Company</th>
+            <th>System</th>
+            <th>Module</th>
+            <th>Submodule</th>
+            <th>Issue type</th>
+            <th>Status</th>
+            <th>Creator</th>
+            <th>Issue solver</th>
+            <th>KPI</th>
+            <th>Date</th>
+            <th>Accomplished</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of rows()">
+            <td class="old-cell-subj">{{ r.originalSubject || '—' }}</td>
+            <td>
+              <span class="old-type-chip" [class.old-type-project]="+r.type === 0" [class.old-type-ticket]="+r.type === 1">
+                {{ recordTypeLabel(r.type) }}
+              </span>
+            </td>
+            <td>{{ companyLabelForRow(r) }}</td>
+            <td>{{ systemLabelForRow(r) }}</td>
+            <td>{{ moduleLabelForRow(r) }}</td>
+            <td>{{ subModuleLabelForRow(r) }}</td>
+            <td>{{ issueTypeLabelForRow(r) }}</td>
+            <td>{{ statusLabelForRow(r) }}</td>
+            <td>{{ creatorLabelForRow(r) }}</td>
+            <td>{{ issueSolverLabelForRow(r) }}</td>
+            <td class="old-cell-kpi">
+              <ng-container *ngIf="kpiForRow(r) as k; else noKpi">
+                <div class="old-kpi-frame" role="group" [attr.aria-label]="'KPI: ' + (k?.kpiName || '—')">
+                  <div class="old-kpi-frame-header">
+                    <span class="old-kpi-frame-badge">KPI</span>
+                  </div>
+                  <div class="old-kpi-name">{{ k?.kpiName || '—' }}</div>
+                  <div class="old-kpi-value" *ngIf="kpiValueForRow(r) !== '—'">
+                    <span class="old-kpi-value-label">Value</span>
+                    <span class="old-kpi-value-text">{{ kpiValueForRow(r) }}</span>
+                  </div>
+                </div>
+              </ng-container>
+              <ng-template #noKpi>—</ng-template>
+            </td>
+            <td>{{ r.date | date : 'mediumDate' }}</td>
+            <td class="old-cell-accomplished">{{ (r.accomplished?.trim() || '—') }}</td>
+            <td>{{ r.createdAt | date : 'short' }}</td>
+          </tr>
+          <tr *ngIf="rows().length === 0">
+            <td colspan="14" class="old-tasks-empty">No old tasks for these filters.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="old-pagination" *ngIf="!isLoading() && !loadError() && totalRecords() > 0">
+      <span>Page {{ currentPage() }} of {{ totalPages }} · {{ totalRecords() }} total</span>
+      <div class="old-page-actions">
+        <button type="button" class="old-btn old-btn-ghost" [disabled]="currentPage() <= 1" (click)="prevPage()">← Previous</button>
+        <button type="button" class="old-btn old-btn-ghost" [disabled]="currentPage() >= totalPages" (click)="nextPage()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>

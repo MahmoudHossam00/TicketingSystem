@@ -1,0 +1,191 @@
+:host { display: block; }
+
+/* ── PAGE ──────────────────────────────────────────────── */
+.list-page {
+  min-height: calc(100vh - 80px);
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ─────────────────────────────────────────────── */
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-border-tertiary);
+  background: var(--color-background-secondary);
+  flex-shrink: 0;
+}
+
+.list-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.list-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -.01em;
+}
+
+.list-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+
+.new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 6px;
+  border: none;
+  background: var(--color-text-primary);
+  color: var(--color-background-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity .12s;
+}
+.new-btn:hover { opacity: .82; }
+
+/* ── LOADING ─────────────────────────────────────────────── */
+.list-loading {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skel {
+  background: var(--color-background-secondary);
+  border-radius: 8px;
+  animation: shimmer 1.4s infinite ease-in-out;
+}
+.skel-card { height: 68px; }
+@keyframes shimmer {
+  0%, 100% { opacity: .4; }
+  50% { opacity: 1; }
+}
+
+/* ── EMPTY ──────────────────────────────────────────────── */
+.list-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 40px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+.list-empty svg { opacity: .2; margin-bottom: 6px; }
+.empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.empty-sub { font-size: 13px; color: var(--color-text-tertiary); }
+.new-btn-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-text-primary);
+  color: var(--color-background-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .12s;
+  margin-top: 6px;
+}
+.new-btn-empty:hover { opacity: .82; }
+
+/* ── GRID ───────────────────────────────────────────────── */
+.list-grid {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+/* ── CARD ───────────────────────────────────────────────── */
+.art-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-tertiary);
+  background: var(--color-background-primary);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color .12s, box-shadow .12s, background .12s;
+}
+.art-card:hover {
+  border-color: var(--color-border-secondary);
+  background: var(--color-background-secondary);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+
+.art-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border-tertiary);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+.art-card:hover .art-card-icon {
+  background: var(--color-background-primary);
+}
+
+.art-card-body { flex: 1; min-width: 0; }
+.art-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.art-card-sys {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-top: 3px;
+}
+
+.art-card-arrow {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity .12s, transform .12s;
+}
+.art-card:hover .art-card-arrow {
+  opacity: 1;
+  transform: translateX(2px);
+}

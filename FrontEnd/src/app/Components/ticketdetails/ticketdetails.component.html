@@ -1,0 +1,1248 @@
+<div class="td-page">
+
+  <!-- Top bar -->
+  <div class="td-topbar">
+    <a routerLink="/all-tickets" class="td-back">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      All tickets
+    </a>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="td-loading">
+    <div class="td-spinner"></div>
+    <p>Loading ticket…</p>
+  </div>
+
+  <!-- Not found -->
+  <div *ngIf="!isLoading && !ticket" class="td-empty">
+    <p>Ticket not found.</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading && ticket">
+
+  <!-- ─── TWO-COLUMN LAYOUT ────────────────────────── -->
+  <div class="td-layout">
+  <div class="td-main">
+
+    <!-- ─── HEADER CARD ─────────────────────────────── -->
+    <div class="td-card td-header-card">
+
+
+      <div class="td-basic-data-row" *ngIf="canchangestatus()">
+        <span class="td-basic-data-key">Company</span>
+        <!-- <span class="td-basic-data-value">{{ currentCompany()?.name || '—'  }}</span> -->
+        <select class="td-basic-data-value" [(ngModel)]="ticket.companyId">
+          <option *ngFor="let company of companies()" [value]="company.id">{{ company.name }}</option>
+        </select>
+        <span class="td-basic-data-key">Issue Type</span>
+        <!-- <span class="td-basic-data-value">{{ currentIssueType()?.issueTypeName || '—' }}</span> -->
+        <select class="td-basic-data-value" [(ngModel)]="ticket.issueTypeId">
+          <option *ngFor="let issueType of issueTypes()" [value]="issueType.id">{{ issueType.issueTypeName }}</option>
+        </select>
+        <span class="td-basic-data-key">Priority</span>
+        <select class="td-basic-data-value" [(ngModel)]="ticket.priority">
+          <option *ngFor="let p of IssuePriorityValues" [ngValue]="p">{{ IssuePriority[p] }}</option>
+        </select>
+        <button type="button" class="td-btn td-btn-outline" (click)="saveBasicData()">Save</button>
+      </div>
+      <!-- Subject + badges -->
+      <div class="td-subject-row" >
+        <h1 class="td-subject">{{ ticket.subject }}</h1>
+        <div class="td-badges">
+          <span class="td-status-badge" [style.background]="currentssueStatus()?.color + '22'" [style.color]="currentssueStatus()?.color">
+            <span class="td-dot" [style.background]="currentssueStatus()?.color"></span>
+            {{ currentssueStatus()?.name || '—' }}
+          </span>
+          <span class="td-priority" [class]="'prio-' + (ticket.priority != null ? ticket.priority : '0')">
+            {{ getPriorityLabel(ticket.priority) }}
+          </span>
+          <span class="td-split-ticket-badge" *ngIf="splitTicketOriginId()">
+            Split Ticket
+          </span>
+        </div>
+      </div>
+
+      <!-- Meta grid -->
+      <div class="td-meta-grid">
+
+        <!-- Row: From + Assigned side by side -->
+        <div class="td-meta-pair">
+          <div class="td-meta-cell">
+            <span class="td-meta-key td-key-from">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              From
+            </span>
+            <span class="td-person-chip td-chip-from">{{ticket.employeeName}} ({{ ticket.userName || ticket.userId || '—' }})</span>
+          </div>
+          <div class="td-meta-cell" *ngIf="currentAssignHistory()">
+            <span class="td-meta-key td-key-assigned">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M13 13c0-2.761-2.239-5-5-5S3 10.239 3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M12 2l2 2-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Assigned
+            </span>
+            <span class="td-person-chip td-chip-assigned">{{ currentAssignHistory()?.userName || '—' }}</span>
+          </div>
+        </div>
+
+        <!-- Row: To + Ticket ID side by side -->
+        <div class="td-meta-pair" *ngIf="TOs.length">
+          <div class="td-meta-cell">
+            <span class="td-meta-key td-key-to">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/></svg>
+              To
+            </span>
+            <div class="td-chips-row">
+              <span *ngFor="let u of TOs" class="td-person-chip td-chip-to">{{ getUserDisplay(u) }}</span>
+            </div>
+          </div>
+          <div class="td-meta-cell">
+            <span class="td-meta-key td-key-id">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Ticket ID
+            </span>
+            <span class="td-id">{{ ticket.id }}</span>
+          </div>
+        </div>
+
+        <!-- Ticket ID alone if no TOs -->
+        <div class="td-meta-pair" *ngIf="!TOs.length">
+          <div class="td-meta-cell">
+            <span class="td-meta-key td-key-id">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Ticket Serial
+            </span>
+            <span class="td-id">{{ ticket.id }}</span>
+            <span class="td-meta-key td-key-id">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Ticket Id
+            </span>
+            <span class="td-id">{{ ticket.numericId }}</span>
+          </div>
+        </div>
+
+        <div class="td-meta-pair" *ngIf="splitTicketOriginId()">
+          <div class="td-meta-cell td-meta-cell-full">
+            <span class="td-meta-key td-key-id">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Original Ticket
+            </span>
+            <a
+              class="td-origin-ticket-link"
+              [routerLink]="['/ticketdetails', splitTicketOriginId()]">
+              {{ splitTicketOriginId() }}
+            </a>
+          </div>
+        </div>
+
+        <!-- CC: full-width row -->
+        <div class="td-meta-cell td-meta-cell-full" *ngIf="CCs.length">
+          <span class="td-meta-key td-key-cc">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="5.5" cy="6" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="10.5" cy="6" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M1 14c0-2.485 2.015-4.5 4.5-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8 14c0-2.485 2.015-4.5 4.5-4.5S17 11.515 17 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Cc
+          </span>
+          <div class="td-chips-row">
+            <span *ngFor="let u of CCs" class="td-person-chip td-chip-cc">{{ getUserDisplay(u) }}</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="td-hierarchy-row" *ngIf="ticketHierarchyContext() as hc">
+        <span class="td-meta-key td-key-hierarchy">Related IT area</span>
+        <div class="td-hierarchy-chips">
+          <div class="td-hierarchy-chip td-hierarchy-chip--system" [attr.title]="hc.systemId">
+            <span class="td-hierarchy-chip-label">System</span>
+            <span class="td-hierarchy-chip-name">{{ hc.systemName }}</span>
+            <code class="td-hierarchy-chip-id">{{ hc.systemId }}</code>
+          </div>
+          <div class="td-hierarchy-chip td-hierarchy-chip--module" [attr.title]="hc.moduleId">
+            <span class="td-hierarchy-chip-label">Module</span>
+            <span class="td-hierarchy-chip-name">{{ hc.moduleName }}</span>
+            <code class="td-hierarchy-chip-id">{{ hc.moduleId }}</code>
+          </div>
+          <div class="td-hierarchy-chip td-hierarchy-chip--submodule" [attr.title]="hc.subModuleId">
+            <span class="td-hierarchy-chip-label">Submodule</span>
+            <span class="td-hierarchy-chip-name">{{ hc.subModuleName }}</span>
+            <code class="td-hierarchy-chip-id">{{ hc.subModuleId }}</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="td-header-extras" *ngIf="canReply()">
+        <div class="td-header-extra">
+          <span class="td-header-extra-k">IP address</span>
+          <span class="td-header-extra-v">{{ ticket.ipAddress || '—' }}</span>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="td-actions">
+        <ng-container *ngIf="canchangestatus()">
+          <button type="button" class="td-btn td-btn-outline" (click)="openStatusAssignModal('status')">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.75"/><path d="M8 5v3l2 1" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            Change Status
+          </button>
+          <button type="button" class="td-btn td-btn-outline" (click)="openStatusAssignModal('assign')">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.75"/><path d="M1 13c0-2.761 2.239-5 5-5h1" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><path d="M12 10v4m-2-2h4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            Assign
+          </button>
+          <span class="td-actions-divider"></span>
+        </ng-container>
+        <button type="button" class="td-btn td-btn-ghost-sm" (click)="openStatusHistoryModal()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 6-6 6 6 0 0 0-5.83 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 5v3l2 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          Status History
+        </button>
+        <button type="button" class="td-btn td-btn-ghost-sm" (click)="openAssignHistoryModal()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M1 13c0-2.761 2.239-5 5-5h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 12h3M12 10.5v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Assign History
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── DESCRIPTION CARD ───────────────────────── -->
+    <div class="td-card td-card--body">
+      <div class="td-section-label">Description</div>
+      <p class="td-body-text">{{ ticket.description || '—' }}</p>
+    </div>
+
+    <!-- ─── ANSWERS CARD ──────────────────────────── -->
+    <div class="td-card td-card--answers" *ngIf="canChangeModuleAndAnswers()">
+      <div class="td-section-label td-section-label-row">
+        <span>Module &amp; Answers</span>
+        <button
+          type="button"
+          class="td-btn td-btn-outline td-btn-sm"
+          *ngIf="!showChangeModuleEditor()"
+          (click)="openChangeModuleEditor()">
+          Change Module
+        </button>
+      </div>
+
+      <p class="td-module-editor-success" *ngIf="moduleChangeSuccess()">{{ moduleChangeSuccess() }}</p>
+      <p class="td-module-editor-error" *ngIf="moduleChangeError()">{{ moduleChangeError() }}</p>
+
+      <div class="td-module-editor" *ngIf="showChangeModuleEditor()">
+        <div class="td-module-editor-grid">
+          <div class="td-module-editor-field">
+            <label class="td-split-label">System <span class="td-required">*</span></label>
+            <select class="td-split-input" [(ngModel)]="changeSelectedSystemId" (change)="onChangeEditorSystemChange()">
+              <option [ngValue]="null">Select a system…</option>
+              <option *ngFor="let s of changeSystems" [value]="s.id">{{ s.name }}</option>
+            </select>
+            <div class="td-module-editor-inline">
+              <input
+                class="td-split-input"
+                type="text"
+                placeholder="New system name"
+                [(ngModel)]="newChangeSystemName" />
+              <button
+                type="button"
+                class="td-btn td-btn-outline td-btn-sm"
+                (click)="addChangeSystem()"
+                [disabled]="!newChangeSystemName.trim() || isCreatingChangeSystem()">
+                {{ isCreatingChangeSystem() ? 'Adding…' : 'Add' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="td-module-editor-field" *ngIf="changeSelectedSystemId">
+            <label class="td-split-label">Assigned User</label>
+            <select class="td-split-input" [(ngModel)]="changeSelectedAssignedUserId">
+              <option [ngValue]="null">Select an agent…</option>
+              <option *ngFor="let a of changeSystemAgents" [value]="a.id">{{ getChangeAgentDisplay(a) }}</option>
+            </select>
+            <p class="td-module-editor-note td-module-editor-note--warn" *ngIf="changeMustPickAssignedUser()">
+              You are not an agent in this system. Please choose another assigned agent before saving.
+            </p>
+            <p class="td-module-editor-note" *ngIf="!changeMustPickAssignedUser() && changeIsCurrentUserAgent()">
+              You are an agent in this system.
+            </p>
+            <p class="td-module-editor-note td-module-editor-note--warn" *ngIf="changeSelectedSystemId && !changeSystemAgents.length">
+              No agents found for this system.
+            </p>
+          </div>
+
+          <div class="td-module-editor-field" *ngIf="changeSelectedSystemId">
+            <label class="td-split-label">Module <span class="td-required">*</span></label>
+            <select class="td-split-input" [(ngModel)]="changeSelectedModuleId" (change)="onChangeEditorModuleChange()">
+              <option [ngValue]="null">Select a module…</option>
+              <option *ngFor="let m of changeModules" [value]="m.id">{{ m.name }}</option>
+            </select>
+            <div class="td-module-editor-inline">
+              <input
+                class="td-split-input"
+                type="text"
+                placeholder="New module name"
+                [(ngModel)]="newChangeModuleName" />
+              <button
+                type="button"
+                class="td-btn td-btn-outline td-btn-sm"
+                (click)="addChangeModule()"
+                [disabled]="!newChangeModuleName.trim() || isCreatingChangeModule()">
+                {{ isCreatingChangeModule() ? 'Adding…' : 'Add' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="td-module-editor-field" *ngIf="changeSelectedModuleId">
+            <label class="td-split-label">Sub Module <span class="td-required">*</span></label>
+            <select class="td-split-input" [(ngModel)]="changeSelectedSubModuleId" (change)="onChangeEditorSubModuleChange()">
+              <option [ngValue]="null">Select a sub module…</option>
+              <option *ngFor="let sm of changeSubModules" [value]="sm.id">{{ sm.name }}</option>
+            </select>
+            <div class="td-module-editor-inline">
+              <input
+                class="td-split-input"
+                type="text"
+                placeholder="New sub module name"
+                [(ngModel)]="newChangeSubModuleName" />
+              <button
+                type="button"
+                class="td-btn td-btn-outline td-btn-sm"
+                (click)="addChangeSubModule()"
+                [disabled]="!newChangeSubModuleName.trim() || isCreatingChangeSubModule()">
+                {{ isCreatingChangeSubModule() ? 'Adding…' : 'Add' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="td-split-questions" *ngIf="changeSelectedSubModuleId">
+          <div class="td-split-q-group" *ngIf="changeTextQuestions.length">
+            <div class="td-split-q-header">Text Questions</div>
+            <div *ngFor="let q of changeTextQuestions" class="td-split-q-item">
+              <label class="td-split-label">{{ q.questionHead }}<span *ngIf="q.isRequired" class="td-required"> *</span></label>
+              <input
+                class="td-split-input"
+                type="text"
+                [value]="changeTextAnswers[q.id]"
+                (input)="changeTextAnswers[q.id] = $any($event.target).value" />
+            </div>
+          </div>
+
+          <div class="td-split-q-group" *ngIf="changeDateQuestions.length">
+            <div class="td-split-q-header">Date Questions</div>
+            <div *ngFor="let q of changeDateQuestions" class="td-split-q-item">
+              <label class="td-split-label">{{ q.questionHead }}<span *ngIf="q.isRequired" class="td-required"> *</span></label>
+              <input
+                class="td-split-input"
+                type="date"
+                [value]="changeDateAnswers[q.id]"
+                (input)="changeDateAnswers[q.id] = $any($event.target).value" />
+            </div>
+          </div>
+
+          <div class="td-split-q-group" *ngIf="changeSingleQuestions.length">
+            <div class="td-split-q-header">Single Choice Questions</div>
+            <div *ngFor="let q of changeSingleQuestions" class="td-split-q-item">
+              <label class="td-split-label">{{ q.questionHead }}<span *ngIf="q.isRequired" class="td-required"> *</span></label>
+              <div class="td-split-checks">
+                <label *ngFor="let opt of q.options ?? []" class="td-split-check-item">
+                  <input
+                    type="radio"
+                    [name]="'change-sc-' + q.id"
+                    [value]="opt.id"
+                    [checked]="changeSingleAnswers[q.id] === opt.id"
+                    (change)="changeSingleAnswers[q.id] = opt.id" />
+                  {{ opt.text }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="td-split-q-group" *ngIf="changeMultiQuestions.length">
+            <div class="td-split-q-header">Multiple Choice Questions</div>
+            <div *ngFor="let q of changeMultiQuestions" class="td-split-q-item">
+              <label class="td-split-label">{{ q.questionHead }}<span *ngIf="q.isRequired" class="td-required"> *</span></label>
+              <div class="td-split-checks">
+                <label *ngFor="let opt of q.options ?? []" class="td-split-check-item">
+                  <input
+                    type="checkbox"
+                    [checked]="isChangeMultiChecked(q.id, opt.id)"
+                    (change)="toggleChangeMulti(q.id, opt.id, $any($event.target).checked)" />
+                  {{ opt.text }}
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="td-module-editor-actions">
+          <button type="button" class="td-btn td-btn-ghost" (click)="closeChangeModuleEditor()">Cancel</button>
+          <button
+            type="button"
+            class="td-btn td-btn-primary"
+            (click)="submitModuleChange()"
+            [disabled]="!isChangeModulePayloadValid() || isSavingModuleChange()">
+            {{ isSavingModuleChange() ? 'Saving…' : 'Save Module & Answers' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="td-card td-card--answers" *ngIf="relatedSubModuleAnswer?.answers?.length">
+      <div class="td-section-label">Answers</div>
+      <dl class="td-answers">
+        <div *ngFor="let answer of relatedSubModuleAnswer?.answers" class="td-answer-row">
+          <dt class="td-answer-q">
+            {{ answer.questionHead }}
+            <span class="td-required" *ngIf="answer.isRequired">*</span>
+          </dt>
+          <dd class="td-answer-v">{{ getAnswerDisplay(answer) }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- ─── ATTACHMENTS CARD ───────────────────────── -->
+    <div class="td-card td-attachments" *ngIf="ticket.attachments.length">
+      <div class="td-section-label">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M11.5 9.5l-5 5a3.536 3.536 0 01-5-5l7-7a2.357 2.357 0 013.333 3.333L5.167 12.5a1.179 1.179 0 01-1.667-1.667L9.5 4.833" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+        {{ ticket.attachments.length }} Attachment{{ ticket.attachments.length > 1 ? 's' : '' }}
+      </div>
+      <ul class="td-attach-list">
+        <li *ngFor="let att of ticket.attachments">
+          <a class="td-attach-link" [href]="baseUrl + ticket.id + '/files/' + getFileName(att)" download>
+            {{ getFileName(att) }}
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ─── CONVERSATION / REPLIES ───────────────────── -->
+    <div class="td-card td-conversation">
+
+      <div class="td-section-label">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        Conversation
+        <span class="td-badge-count" *ngIf="replies.length">{{ replies.length }}</span>
+      </div>
+
+      <!-- Thread -->
+      <div class="td-chat-thread" *ngIf="replies.length; else noReplies">
+
+        <!-- Show older button -->
+        <div class="td-show-older" *ngIf="hasOlderReplies()">
+          <button type="button" class="td-show-older-btn" (click)="showOlderReplies()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 13V3M3 8l5-5 5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Show older messages
+            <span class="td-show-older-count">{{ replies.length - visibleReplyCount() }} more</span>
+          </button>
+        </div>
+
+        <div *ngFor="let r of visibleReplies()"
+             class="td-chat-msg"
+             [class.td-chat-mine]="isMyReply(r)"
+             [class.td-chat-theirs]="!isMyReply(r)">
+
+          <!-- Sender + time -->
+          <div class="td-chat-meta">
+            <span class="td-chat-sender">{{ isMyReply(r) ? 'You' : r.userName }}</span>
+            <span class="td-chat-time">{{ r.date | date:'MMM d, y · h:mm a' }}</span>
+            <button *ngIf="canchangestatus() && !r.splitTicketId" type="button" class="td-split-reply-btn"
+              (click)="openSplitModal(r)" title="Split this reply into a new ticket">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+                <path d="M5 3H2v3M2 3l5 5M11 3h3v3M14 3l-5 5M8 8v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Split
+            </button>
+            <button *ngIf="canchangestatus() && r.splitTicketId" type="button" class="td-split-reply-btn"
+              (click)="NavigateToSplitTicket(r.splitTicketId)" title="Go to split ticket">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+                <path d="M5 3H2v3M2 3l5 5M11 3h3v3M14 3l-5 5M8 8v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Go to split ticket
+            </button>
+          </div>
+
+          <div class="td-chat-bubble">
+
+            <!-- Subject (if present) -->
+            <p class="td-chat-subject" *ngIf="r.subject">{{ r.subject }}</p>
+
+            <!-- Description -->
+            <ng-container *ngIf="extractTaggedArticleLink(r.description) as taggedReply; else plainOrStandaloneReply">
+              <p class="td-chat-text" *ngIf="taggedReply.before">{{ taggedReply.before }}</p>
+              <a
+                class="td-chat-link"
+                [href]="asHref(taggedReply.link)"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ linkLabel(taggedReply.link) }}
+              </a>
+              <p class="td-chat-text" *ngIf="taggedReply.after">{{ taggedReply.after }}</p>
+            </ng-container>
+            <ng-template #plainOrStandaloneReply>
+              <ng-container *ngIf="isStandaloneLink(r.description); else plainReplyDescription">
+                <a
+                  class="td-chat-link"
+                  [href]="asHref(r.description)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ linkLabel(r.description) }}
+                </a>
+              </ng-container>
+            </ng-template>
+            <ng-template #plainReplyDescription>
+              <p class="td-chat-text">{{ r.description }}</p>
+            </ng-template>
+
+            <!-- To / Cc recipients (if present) -->
+            <div class="td-chat-recipients" *ngIf="r.to.length || r.cCs.length">
+              <span class="td-chat-rcpt-label" *ngIf="r.to.length">To:</span>
+              <span *ngFor="let u of r.to" class="td-chat-rcpt-chip">{{ u }}</span>
+              <span class="td-chat-rcpt-label" *ngIf="r.cCs.length">Cc:</span>
+              <span *ngFor="let u of r.cCs" class="td-chat-rcpt-chip">{{ u }}</span>
+            </div>
+
+            <!-- Attachments & pictures -->
+            <div class="td-chat-attachments" *ngIf="r.attachments.length || r.pictures.length">
+              <div *ngFor="let att of r.attachments" class="td-chat-file-row">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M11.5 9.5l-5 5a3.536 3.536 0 01-5-5l7-7a2.357 2.357 0 013.333 3.333L5.167 12.5a1.179 1.179 0 01-1.667-1.667L9.5 4.833" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                <a class="td-chat-file-link" [href]="baseUrl + ticket.id + '/files/' + getFileName(att)" download>
+                  {{ getFileName(att) }}
+                </a>
+              </div>
+              <button *ngFor="let pic of r.pictures" type="button" class="td-thumb-btn"
+                [class.td-thumb-mine]="isMyReply(r)"
+                (click)="openLightbox(baseUrl + ticket.id + '/files/' + getFileName(pic))">
+                <img class="td-thumb" [src]="baseUrl + ticket.id + '/files/' + getFileName(pic)" [alt]="getFileName(pic)" />
+                <span class="td-thumb-overlay">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M8 5v6M5 8h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <ng-template #noReplies>
+        <p class="td-chat-empty">No replies yet. Start the conversation below.</p>
+      </ng-template>
+
+      <!-- Compose (only for ticket creator or assigned agent) -->
+      <div class="td-compose" *ngIf="canReply()">
+
+        <!-- Hidden file inputs -->
+        <input type="file" #attachInput multiple (change)="onReplyAttachmentChange($event)" style="display:none" />
+        <input type="file" #picInput multiple accept="image/*" (change)="onReplyPictureChange($event)" style="display:none" />
+
+        <!-- To recipients -->
+        <div class="td-reply-field">
+          <span class="td-reply-field-label">To</span>
+          <div class="td-reply-field-body">
+            <div class="td-reply-chips" *ngIf="replyTo.length">
+              <span *ngFor="let id of replyTo" class="td-reply-chip td-reply-chip-to">
+                {{ getAppUserName(id) }}
+                <button type="button" class="td-reply-chip-rm" (click)="removeReplyTo(id)">×</button>
+              </span>
+            </div>
+            <div class="td-reply-dropdown-wrap">
+              <input
+                class="td-reply-search"
+                type="text"
+                placeholder="Search users…"
+                [value]="replySearchTo()"
+                (input)="onReplyToSearchInput($any($event.target).value)"
+                (focus)="onReplyToSearchFocus()"
+                (blur)="closeReplyToDropdown()"
+                autocomplete="off" />
+              <div class="td-reply-dropdown" *ngIf="replyDropdownToOpen()">
+                <div class="td-reply-dropdown-empty" *ngIf="replyToSearchLoading()">Searching…</div>
+                <button type="button" *ngFor="let u of getFilteredReplyTo()" class="td-reply-dropdown-item"
+                  (mousedown)="addReplyTo(u.id); $event.preventDefault()">
+                  <span class="td-reply-user-name">{{ u.name }}</span>
+                  <span class="td-reply-user-id">{{ u.id }}</span>
+                </button>
+                <div class="td-reply-dropdown-empty" *ngIf="!replyToSearchLoading() && getFilteredReplyTo().length === 0">No matching users</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CCs -->
+        <div class="td-reply-field">
+          <span class="td-reply-field-label">Cc</span>
+          <div class="td-reply-field-body">
+            <div class="td-reply-chips" *ngIf="replyCCs.length">
+              <span *ngFor="let id of replyCCs" class="td-reply-chip td-reply-chip-cc">
+                {{ getAppUserName(id) }}
+                <button type="button" class="td-reply-chip-rm" (click)="removeReplyCCs(id)">×</button>
+              </span>
+            </div>
+            <div class="td-reply-dropdown-wrap">
+              <input
+                class="td-reply-search"
+                type="text"
+                placeholder="Search users…"
+                [value]="replySearchCCs()"
+                (input)="onReplyCCsSearchInput($any($event.target).value)"
+                (focus)="onReplyCCsSearchFocus()"
+                (blur)="closeReplyCCsDropdown()"
+                autocomplete="off" />
+              <div class="td-reply-dropdown" *ngIf="replyDropdownCCsOpen()">
+                <div class="td-reply-dropdown-empty" *ngIf="replyCCsSearchLoading()">Searching…</div>
+                <button type="button" *ngFor="let u of getFilteredReplyCCs()" class="td-reply-dropdown-item"
+                  (mousedown)="addReplyCCs(u.id); $event.preventDefault()">
+                  <span class="td-reply-user-name">{{ u.name }}</span>
+                  <span class="td-reply-user-id">{{ u.id }}</span>
+                </button>
+                <div class="td-reply-dropdown-empty" *ngIf="!replyCCsSearchLoading() && getFilteredReplyCCs().length === 0">No matching users</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message input -->
+        <textarea
+          class="td-compose-input"
+          [(ngModel)]="replyText"
+          placeholder="Write a reply…"
+          rows="3"
+          (keydown.control.enter)="sendReply()"></textarea>
+
+        <!-- Staged files chips -->
+        <div class="td-compose-files" *ngIf="replyAttachments.length || replyPictures.length">
+          <span *ngFor="let f of replyAttachments; let i = index" class="td-file-chip">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M11.5 9.5l-5 5a3.536 3.536 0 01-5-5l7-7a2.357 2.357 0 013.333 3.333L5.167 12.5a1.179 1.179 0 01-1.667-1.667L9.5 4.833" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            {{ f.name }}
+            <button type="button" class="td-file-chip-remove" (click)="removeReplyAttachment(i)">×</button>
+          </span>
+          <span *ngFor="let f of replyPictures; let i = index" class="td-file-chip td-file-chip-img">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="5.5" cy="7" r="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M1 11l4-4 3 3 2-2 5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            {{ f.name }}
+            <button type="button" class="td-file-chip-remove" (click)="removeReplyPicture(i)">×</button>
+          </span>
+        </div>
+
+        <!-- Toolbar + send -->
+        <div class="td-compose-footer">
+          <div class="td-compose-tools">
+            <button type="button" class="td-compose-tool-btn" title="Attach file" (click)="attachInput.click()">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M11.5 9.5l-5 5a3.536 3.536 0 01-5-5l7-7a2.357 2.357 0 013.333 3.333L5.167 12.5a1.179 1.179 0 01-1.667-1.667L9.5 4.833" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Attach
+            </button>
+            <button type="button" class="td-compose-tool-btn" title="Add image" (click)="picInput.click()">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="5.5" cy="7" r="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M1 11l4-4 3 3 2-2 5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Image
+            </button>
+            <button type="button" class="td-compose-tool-btn" title="Send article link" (click)="openArticlePicker()">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 2h7a1 1 0 0 1 1 1v7" stroke="currentColor" stroke-width="1.5"/><path d="M10 6h4M14 2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="2" y="6" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+              Article
+            </button>
+            <span class="td-compose-hint">Ctrl + Enter to send</span>
+          </div>
+          <button
+            type="button"
+            class="td-btn td-btn-primary"
+            (click)="sendReply()"
+            [disabled]="!replyText.trim() || isSendingReply">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l4.5 2.5L11 5l-4.5 4.5L9 14l5-12z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            {{ isSendingReply ? 'Sending…' : 'Send Reply' }}
+          </button>
+        </div>
+
+      </div>
+
+      <div class="td-modal-overlay" *ngIf="articlePickerOpen()" (mousedown)="closeArticlePicker()">
+        <div class="td-modal td-article-modal" (mousedown)="$event.stopPropagation()">
+          <div class="td-modal-header">
+            <div>
+              <div class="td-modal-title">Insert Article Link</div>
+              <div class="td-modal-sub">Search articles and insert a link into your reply message.</div>
+            </div>
+            <button type="button" class="td-close-btn" (click)="closeArticlePicker()">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div class="td-modal-body">
+            <div class="td-search-wrap">
+              <input class="td-search" type="text" placeholder="Search by article title…"
+                [value]="articleSearch()" (input)="onArticleSearchInput($any($event.target).value)" />
+            </div>
+            <div class="td-picker">
+              <div class="td-picker-empty" *ngIf="articleSearchLoading()">Searching…</div>
+              <button
+                type="button"
+                *ngFor="let article of articleSearchResults()"
+                class="td-picker-item"
+                (click)="sendArticleReply(article)">
+                <span class="td-picker-label">{{ article.title || ('Article ' + article.id) }}</span>
+                <span class="td-picker-sub">{{ article.id }}</span>
+              </button>
+              <div class="td-picker-empty" *ngIf="!articleSearchLoading() && articleSearchResults().length === 0">No matching articles</div>
+            </div>
+          </div>
+          <div class="td-modal-footer">
+            <button type="button" class="td-btn td-btn-ghost" (click)="closeArticlePicker()">Close</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /td-main -->
+
+  <!-- ─── SIDEBAR: PRIVATE NOTES ───────────────────── -->
+  <aside class="td-sidebar">
+    <div class="td-card td-notes-sidebar">
+      <div class="td-section-label">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 2h10a1 1 0 011 1v9a1 1 0 01-1 1H6l-3 2V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        Private Notes
+        <span class="td-badge-count" *ngIf="notes.length">{{ notes.length }}</span>
+      </div>
+
+      <!-- Notes list -->
+      <div class="td-notes-list" *ngIf="notes.length; else noNotes">
+        <div *ngFor="let note of notes; let i = index" class="td-note-item">
+          <span class="td-note-index">{{ i + 1 }}</span>
+          <p class="td-note-text">{{ note }}</p>
+        </div>
+      </div>
+      <ng-template #noNotes>
+        <p class="td-notes-empty">No private notes yet.</p>
+      </ng-template>
+
+      <!-- Add note -->
+      <div class="td-add-note" *ngIf="canchangestatus() || isTaskUser()">
+        <textarea class="td-note-input" rows="3" [(ngModel)]="note" placeholder="Write a private note…"></textarea>
+        <button type="button" class="td-btn td-btn-primary td-note-submit" (click)="addPrivateNote()" [disabled]="!note.trim()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l4.5 2.5L11 5l-4.5 4.5L9 14l5-12z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          Add Note
+        </button>
+      </div>
+    </div>
+
+    <div class="td-card td-tasks-sidebar" *ngIf="canViewTicketTasks()">
+      <div class="td-section-label">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3z" stroke="currentColor" stroke-width="1.5"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Accomplished Tasks
+        <span class="td-badge-count" *ngIf="ticketTasks.length">{{ ticketTasks.length }}</span>
+      </div>
+
+      <p class="td-task-feedback td-task-feedback--error" *ngIf="taskError()">{{ taskError() }}</p>
+      <p class="td-task-feedback td-task-feedback--ok" *ngIf="taskSuccess()">{{ taskSuccess() }}</p>
+
+      <div class="td-tasks-list" *ngIf="ticketTasks.length; else noTasksYet">
+        <div class="td-task-item" *ngFor="let t of ticketTasks">
+          <div *ngIf="isRelatedToTask(t)">
+
+            <p class="td-task-text">{{ t.description }}</p>
+            <div class="td-task-meta">
+              <span>{{ getTaskUserDisplay(t) }}</span>
+              <span>{{ t.date | date:'MMM d, y' }}</span>
+            </div>
+            <div class="td-task-kpi-row" *ngIf="isRelatedToTask(t)">
+              <span class="td-task-kpi-chip" *ngIf="t.kpi">KPI: {{ ticketTaskKpiName(t) }}</span>
+              <button
+                *ngIf="!t.kpi"
+                type="button"
+                class="td-btn td-btn-ghost td-task-kpi-btn"
+                (click)="openTicketTaskKpiModalPrompt(t)"
+                [disabled]="ticketTaskKpiBusyId() === t.id">
+                {{ ticketTaskKpiBusyId() === t.id ? 'Adding KPI…' : 'Add KPI' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ng-template #noTasksYet>
+        <p class="td-notes-empty">No accomplished tasks yet.</p>
+      </ng-template>
+
+      <div class="td-add-task" *ngIf="canCreateTicketTask()">
+        <textarea
+          class="td-note-input"
+          rows="2"
+          [(ngModel)]="taskDescription"
+          placeholder="What task did you accomplish?"></textarea>
+        <input class="td-task-date" type="date" [(ngModel)]="taskDate" />
+        <button
+          type="button"
+          class="td-btn td-btn-primary td-note-submit"
+          (click)="submitTicketTask()"
+          [disabled]="!taskDescription.trim() || !taskDate || isCreatingTask">
+          {{ isCreatingTask ? 'Adding…' : 'Add Task' }}
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  </div><!-- /td-layout -->
+
+    <div class="td-modal-overlay" *ngIf="ticketTaskKpiModal() as kpiTask" (mousedown)="closeTicketTaskKpiModalPrompt()">
+      <div class="td-modal td-kpi-create-modal" (mousedown)="$event.stopPropagation()">
+        <div class="td-modal-header">
+          <div>
+            <div class="td-modal-title">Add KPI</div>
+            <div class="td-modal-sub">Task: {{ kpiTask.description || kpiTask.id }}</div>
+          </div>
+          <button type="button" class="td-close-btn" (click)="closeTicketTaskKpiModalPrompt()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="td-modal-body">
+          <div class="td-kpi-create-field">
+            <label class="td-kpi-create-label">Use fixed KPI?</label>
+            <div class="td-kpi-create-toggle">
+              <button
+                type="button"
+                class="td-kpi-create-choice"
+                [class.td-kpi-create-choice--active]="!ticketTaskUseFixedKpi()"
+                (click)="ticketTaskUseFixedKpi.set(false)">
+                No
+              </button>
+              <button
+                type="button"
+                class="td-kpi-create-choice"
+                [class.td-kpi-create-choice--active]="ticketTaskUseFixedKpi()"
+                (click)="ticketTaskUseFixedKpi.set(true)">
+                Yes
+              </button>
+            </div>
+          </div>
+
+          <div class="td-kpi-create-field" *ngIf="ticketTaskUseFixedKpi()">
+            <label class="td-kpi-create-label">Fixed KPI</label>
+            <select
+              class="td-task-date"
+              [ngModel]="ticketTaskSelectedFixedKpiId()"
+              (ngModelChange)="ticketTaskSelectedFixedKpiId.set($event)"
+              [disabled]="ticketTaskFixedKpisLoading()">
+              <option value="">Select fixed KPI</option>
+              <option *ngFor="let k of ticketTaskFixedKpis()" [value]="k.id">{{ k.name }}</option>
+            </select>
+            <div class="td-kpi-create-hint" *ngIf="ticketTaskFixedKpisLoading()">Loading fixed KPIs…</div>
+          </div>
+
+          <p class="td-task-feedback td-task-feedback--error" *ngIf="ticketTaskKpiModalError()">{{ ticketTaskKpiModalError() }}</p>
+        </div>
+        <div class="td-modal-footer">
+          <button
+            type="button"
+            class="td-btn td-btn-primary"
+            (click)="submitTicketTaskKpi()"
+            [disabled]="ticketTaskKpiBusyId() === kpiTask.id">
+            {{ ticketTaskKpiBusyId() === kpiTask.id ? 'Creating…' : (ticketTaskUseFixedKpi() ? 'Create with fixed KPI' : 'Create KPI now') }}
+          </button>
+          <button type="button" class="td-btn td-btn-ghost" (click)="closeTicketTaskKpiModalPrompt()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── MODAL ─────────────────────────────────── -->
+    <div class="td-modal-overlay" *ngIf="showStatusAssignModal()" (mousedown)="closeStatusAssignModal()">
+      <div class="td-modal" (mousedown)="$event.stopPropagation()">
+
+        <div class="td-modal-header">
+          <div>
+            <div class="td-modal-title">
+              {{ currentModalType() === 'status' ? 'Change Status' : 'Assign Ticket' }}
+            </div>
+            <div class="td-modal-sub">
+              {{ currentModalType() === 'status' ? 'Search and pick a new status' : 'Search agents by name, email, or employee number' }}
+            </div>
+          </div>
+          <button type="button" class="td-close-btn" (click)="closeStatusAssignModal()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div class="td-modal-body">
+
+          <!-- Status picker -->
+          <ng-container *ngIf="currentModalType() === 'status'">
+            <div class="td-search-wrap">
+              <svg class="td-search-icon" width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#94a3b8" stroke-width="1.6"/><path d="M11 11l3 3" stroke="#94a3b8" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <input class="td-search" type="text" placeholder="Search statuses…"
+                [value]="statusSearch()" (input)="statusSearch.set($any($event.target).value)" />
+            </div>
+            <div class="td-picker">
+              <button
+                type="button"
+                *ngFor="let s of filteredStatuses()"
+                class="td-picker-item"
+                [class.selected]="selectedStatusId() === s.id"
+                (click)="pickStatus(s.id)">
+                <span class="td-status-dot" [style.background]="s.color"></span>
+                <span class="td-picker-label">{{ s.name }}</span>
+                <svg *ngIf="selectedStatusId() === s.id" class="td-check" width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="#007aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="td-picker-empty" *ngIf="filteredStatuses().length === 0">No matches</div>
+            </div>
+          </ng-container>
+
+          <!-- Agent picker -->
+          <ng-container *ngIf="currentModalType() === 'assign'">
+            <div class="td-search-wrap">
+              <svg class="td-search-icon" width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#94a3b8" stroke-width="1.6"/><path d="M11 11l3 3" stroke="#94a3b8" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <input class="td-search" type="text" placeholder="Search agents…"
+                [value]="agentSearch()" (input)="agentSearch.set($any($event.target).value)" />
+            </div>
+            <div class="td-picker">
+              <button
+                type="button"
+                *ngFor="let a of filteredAgents()"
+                class="td-picker-item"
+                [class.selected]="selectedUserId() === a.id"
+                (click)="pickAgent(a.id)">
+                <span class="td-avatar">{{ (a.userName || '?').charAt(0).toUpperCase() }}</span>
+                <span class="td-picker-info">
+                  <span class="td-picker-label">{{ a.userName }}</span>
+                  <span class="td-picker-sub">({{ a.employeeNumber }}) {{ a.email }}</span>
+                  <span class="td-picker-workload">
+                    <span class="td-workload-chip">Tickets: {{ agentWorkload(a.id).tickets }}</span>
+                    <span class="td-workload-chip">Project Tasks: {{ agentWorkload(a.id).projectTasks }}</span>
+                  </span>
+                </span>
+                <svg *ngIf="selectedUserId() === a.id" class="td-check" width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="#007aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="td-picker-empty" *ngIf="filteredAgents().length === 0">No matches</div>
+            </div>
+          </ng-container>
+
+        </div>
+
+        <div class="td-modal-footer">
+          <button type="button" class="td-btn td-btn-ghost" (click)="closeStatusAssignModal()">Cancel</button>
+          <button type="button" class="td-btn td-btn-primary"
+            (click)="currentModalType() === 'status' ? applyStatus(ticket.id) : applyAssign(ticket.id)"
+            [disabled]="currentModalType() === 'status' ? !selectedStatusId() : !selectedUserId()">
+            {{ currentModalType() === 'status' ? 'Update Status' : 'Assign' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── STATUS HISTORY MODAL ────────────────── -->
+    <div class="td-modal-overlay" *ngIf="showStatusHistoryModal()" (mousedown)="closeStatusHistoryModal()">
+      <div class="td-modal td-modal-history" (mousedown)="$event.stopPropagation()">
+        <div class="td-modal-header">
+          <div>
+            <div class="td-modal-title">Status History</div>
+            <div class="td-modal-sub">All status changes for this ticket</div>
+          </div>
+          <button type="button" class="td-close-btn" (click)="closeStatusHistoryModal()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="td-modal-body td-history-body">
+          <div *ngIf="statusHistory.length === 0" class="td-picker-empty">No status history found.</div>
+          <div class="td-timeline">
+            <div *ngFor="let h of statusHistory; let i = index; let last = last" class="td-timeline-item">
+              <div class="td-timeline-left">
+                <span class="td-timeline-dot" [style.background]="h.response.color"></span>
+                <span class="td-timeline-line" *ngIf="!last"></span>
+              </div>
+              <div class="td-timeline-content">
+                <span class="td-status-pill" [style.background]="h.response.color + '22'" [style.color]="h.response.color">
+                  <span class="td-status-dot-sm" [style.background]="h.response.color"></span>
+                  {{ h.response.name || '—' }}
+                </span>
+                <span class="td-timeline-date">{{ h.date | date:'MMM d, y · h:mm a' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="td-modal-footer">
+          <button type="button" class="td-btn td-btn-ghost" (click)="closeStatusHistoryModal()">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── ASSIGN HISTORY MODAL ─────────────────── -->
+    <div class="td-modal-overlay" *ngIf="showAssignHistoryModal()" (mousedown)="closeAssignHistoryModal()">
+      <div class="td-modal td-modal-history" (mousedown)="$event.stopPropagation()">
+        <div class="td-modal-header">
+          <div>
+            <div class="td-modal-title">Assignment History</div>
+            <div class="td-modal-sub">All agent assignments for this ticket</div>
+          </div>
+          <button type="button" class="td-close-btn" (click)="closeAssignHistoryModal()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="td-modal-body td-history-body">
+          <div *ngIf="assignHistoriess.length === 0" class="td-picker-empty">No assignment history found.</div>
+          <div class="td-timeline">
+            <div *ngFor="let a of assignHistoriess; let last = last" class="td-timeline-item">
+              <div class="td-timeline-left">
+                <span class="td-timeline-avatar">{{ (a.userName || '?').charAt(0).toUpperCase() }}</span>
+                <span class="td-timeline-line" *ngIf="!last"></span>
+              </div>
+              <div class="td-timeline-content">
+                <span class="td-timeline-name">{{ a.userName }}</span>
+                <span class="td-timeline-date">{{ a.assignDate | date:'MMM d, y · h:mm a' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="td-modal-footer">
+          <button type="button" class="td-btn td-btn-ghost" (click)="closeAssignHistoryModal()">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- ─── LIGHTBOX ──────────────────────────────────── -->
+  <div class="td-lightbox-overlay" *ngIf="lightboxSrc()" (click)="closeLightbox()">
+    <div class="td-lightbox" (click)="$event.stopPropagation()">
+      <button type="button" class="td-lightbox-close" (click)="closeLightbox()">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <img class="td-lightbox-img" [src]="lightboxSrc()!" alt="Preview" />
+      <a class="td-lightbox-link" [href]="lightboxSrc()!" target="_blank" rel="noopener">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M10 2h4v4M14 2L8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Open full size
+      </a>
+    </div>
+  </div>
+  <div class="td-ticket-chat-wrap" *ngIf="ticket && (canchangestatus() || isTaskUser())">
+    <app-ticket-chat-component
+      [ticketId]="ticket.id"
+      [ticketCreatorId]="ticket.userId "
+      [assignedUserId]="currentAssignHistory()?.userId ?? ''"
+    ></app-ticket-chat-component>
+  </div>
+
+  <!-- ─── SPLIT TICKET MODAL ──────────────────────────────────────── -->
+  <div class="td-modal-overlay" *ngIf="showSplitModal()" (mousedown)="closeSplitModal()">
+    <div class="td-modal td-split-modal" (mousedown)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="td-modal-header">
+        <div>
+          <div class="td-modal-title">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="margin-right:6px;vertical-align:-2px">
+              <path d="M5 3H2v3M2 3l5 5M11 3h3v3M14 3l-5 5M8 8v5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Split Ticket
+          </div>
+          <div class="td-modal-sub">Create a new ticket from this reply — pre-filled with its data</div>
+        </div>
+        <button type="button" class="td-close-btn" (click)="closeSplitModal()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="td-modal-body td-split-body">
+
+        <!-- Error -->
+        <div class="td-split-error" *ngIf="splitError">{{ splitError }}</div>
+
+        <!-- ── Ticket Details ── -->
+        <div class="td-split-section-label">Ticket Details</div>
+        <div class="td-split-grid">
+          <div class="td-split-field td-split-full">
+            <label class="td-split-label">Subject <span class="td-required">*</span></label>
+            <input class="td-split-input" type="text" [(ngModel)]="splitSubject" placeholder="Ticket subject…" />
+          </div>
+          <div class="td-split-field td-split-full">
+            <label class="td-split-label">Description <span class="td-required">*</span></label>
+            <textarea class="td-split-input td-split-textarea" rows="3" [(ngModel)]="splitDescription" placeholder="Describe the issue…"></textarea>
+          </div>
+          <div class="td-split-field">
+            <label class="td-split-label">Priority</label>
+            <select class="td-split-input" [(ngModel)]="splitPriority">
+              <option *ngFor="let p of IssuePriorityValues" [ngValue]="p">{{ IssuePriority[p] }}</option>
+            </select>
+          </div>
+          <div class="td-split-field">
+            <label class="td-split-label">Company</label>
+            <select class="td-split-input" [(ngModel)]="splitCompanyId">
+              <option [ngValue]="undefined">— No company —</option>
+              <option *ngFor="let c of companies()" [value]="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div class="td-split-field">
+            <label class="td-split-label">Issue Type</label>
+            <select class="td-split-input" [(ngModel)]="splitIssueTypeId">
+              <option [ngValue]="undefined">— No issue type —</option>
+              <option *ngFor="let t of issueTypes()" [value]="t.id">{{ t.issueTypeName }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ── Module / Questions ── -->
+        <div class="td-split-section-label">Module &amp; Questions</div>
+        <div class="td-split-grid">
+          <div class="td-split-field">
+            <label class="td-split-label">System <span class="td-required">*</span></label>
+            <select class="td-split-input" [(ngModel)]="splitSelectedSystemId" (change)="onSplitSystemChange()">
+              <option [ngValue]="null">Select a system…</option>
+              <option *ngFor="let s of splitSystems" [value]="s.id">{{ s.name }}</option>
+            </select>
+          </div>
+          <div class="td-split-field" *ngIf="splitSelectedSystemId">
+            <label class="td-split-label">Module <span class="td-required">*</span></label>
+            <select class="td-split-input" [(ngModel)]="splitSelectedModuleId" (change)="onSplitModuleChange()">
+              <option [ngValue]="null">Select a module…</option>
+              <option *ngFor="let m of splitModules" [value]="m.id">{{ m.name }}</option>
+            </select>
+          </div>
+          <div class="td-split-field" *ngIf="splitSelectedModuleId">
+            <label class="td-split-label">Sub Module <span class="td-required">*</span></label>
+            <select class="td-split-input" [(ngModel)]="splitSelectedSubModuleId" (change)="onSplitSubModuleChange()">
+              <option [ngValue]="null">Select a sub module…</option>
+              <option *ngFor="let sm of splitSubModules" [value]="sm.id">{{ sm.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Questions -->
+        <div class="td-split-questions" *ngIf="splitSelectedSubModuleId">
+
+          <!-- Text -->
+          <div class="td-split-q-group" *ngIf="splitTextQuestions.length">
+            <div class="td-split-q-header">Text Questions</div>
+            <div *ngFor="let q of splitTextQuestions" class="td-split-q-item">
+              <label class="td-split-label">{{ q.questionHead }}<span *ngIf="q.isRequired" class="td-required"> *</span></label>
+              <input class="td-split-input" type="text"
+                [value]="splitTextAnswers[q.id]"
+                (input)="splitTextAnswers[q.id] = $any($event.target).value" />
+            </div>
+          </div>
+
+          <!-- Date -->
+          <div class="td-split-q-group" *ngIf="splitDateQuestions.length">
+            <div class="td-split-q-header">Date Questions</div>
+            <div *ngFor="let q of splitDateQuestions" class="td-split-q-item">
+              <label class="td-split-label">{{ q.questionHead }}<span *ngIf="q.isRequired" class="td-required"> *</span></label>
+              <input class="td-split-input" type="date"
+                [value]="splitDateAnswers[q.id] "
+                (input)="splitDateAnswers[q.id] = $any($event.target).value" />
+            </div>
+          </div>
+
+          <!-- Single Choice -->
+          <div class="td-split-q-group" *ngIf="splitSingleQuestions.length">
+            <div class="td-split-q-header">Single Choice Questions</div>
+            <div *ngFor="let q of splitSingleQuestions" class="td-split-q-item">
+              <label class="td-split-label">{{ q.questionHead }}<span *ngIf="q.isRequired" class="td-required"> *</span></label>
+              <div class="td-split-checks">
+                <label *ngFor="let opt of q.options ?? []" class="td-split-check-item">
+                  <input type="radio" [name]="'split-sc-' + q.id" [value]="opt.id"
+                    [checked]="splitSingleAnswers[q.id] === opt.id"
+                    (change)="splitSingleAnswers[q.id] = opt.id" />
+                  {{ opt.text }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Multiple Choice -->
+          <div class="td-split-q-group" *ngIf="splitMultiQuestions.length">
+            <div class="td-split-q-header">Multiple Choice Questions</div>
+            <div *ngFor="let q of splitMultiQuestions" class="td-split-q-item">
+              <label class="td-split-label">{{ q.questionHead }}<span *ngIf="q.isRequired" class="td-required"> *</span></label>
+              <div class="td-split-checks">
+                <label *ngFor="let opt of q.options ?? []" class="td-split-check-item">
+                  <input type="checkbox"
+                    [checked]="isSplitMultiChecked(q.id, opt.id)"
+                    (change)="toggleSplitMulti(q.id, opt.id, $any($event.target).checked)" />
+                  {{ opt.text }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /td-split-questions -->
+
+        <!-- ── Attachments ── -->
+        <div class="td-split-section-label">Attachments <span class="td-split-optional">(optional)</span></div>
+        <div class="td-split-field td-split-full">
+          <input type="file" #splitFileInput multiple (change)="onSplitAttachmentChange($event)" style="display:none" />
+          <div class="td-split-attach-chips" *ngIf="splitAttachments.length">
+            <span *ngFor="let f of splitAttachments; let i = index" class="td-file-chip">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M11.5 9.5l-5 5a3.536 3.536 0 01-5-5l7-7a2.357 2.357 0 013.333 3.333L5.167 12.5a1.179 1.179 0 01-1.667-1.667L9.5 4.833" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              {{ f.name }}
+              <button type="button" class="td-file-chip-remove" (click)="removeSplitAttachment(i)">×</button>
+            </span>
+          </div>
+          <button type="button" class="td-split-attach-btn" (click)="splitFileInput.click()">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M11.5 9.5l-5 5a3.536 3.536 0 01-5-5l7-7a2.357 2.357 0 013.333 3.333L5.167 12.5a1.179 1.179 0 01-1.667-1.667L9.5 4.833" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Add files
+          </button>
+        </div>
+
+        <!-- ── Recipients ── -->
+        <div class="td-split-section-label">Recipients</div>
+
+        <!-- To -->
+        <div class="td-split-field td-split-full">
+          <label class="td-split-label">To</label>
+          <div class="td-reply-chips" *ngIf="splitTo.length">
+            <span *ngFor="let id of splitTo" class="td-reply-chip td-reply-chip-to">
+              {{ getAppUserName(id) }}
+              <button type="button" class="td-reply-chip-rm" (click)="removeSplitTo(id)">×</button>
+            </span>
+          </div>
+          <div class="td-reply-dropdown-wrap">
+            <input class="td-split-input" type="text" placeholder="Search users…"
+              [value]="splitSearchTo()"
+              (input)="splitSearchTo.set($any($event.target).value); splitDropdownToOpen.set(true)"
+              (focus)="splitDropdownToOpen.set(true)"
+              (blur)="closeSplitToDropdown()"
+              autocomplete="off" />
+            <div class="td-reply-dropdown" *ngIf="splitDropdownToOpen()">
+              <button type="button" *ngFor="let u of getFilteredSplitTo()" class="td-reply-dropdown-item"
+                (mousedown)="addSplitTo(u.id); $event.preventDefault()">
+                <span class="td-reply-user-name">{{ u.name }}</span>
+              </button>
+              <div class="td-reply-dropdown-empty" *ngIf="getFilteredSplitTo().length === 0">No matching users</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cc -->
+        <div class="td-split-field td-split-full">
+          <label class="td-split-label">Cc</label>
+          <div class="td-reply-chips" *ngIf="splitCCs.length">
+            <span *ngFor="let id of splitCCs" class="td-reply-chip td-reply-chip-cc">
+              {{ getAppUserName(id) }}
+              <button type="button" class="td-reply-chip-rm" (click)="removeSplitCCs(id)">×</button>
+            </span>
+          </div>
+          <div class="td-reply-dropdown-wrap">
+            <input class="td-split-input" type="text" placeholder="Search users…"
+              [value]="splitSearchCCs()"
+              (input)="splitSearchCCs.set($any($event.target).value); splitDropdownCCsOpen.set(true)"
+              (focus)="splitDropdownCCsOpen.set(true)"
+              (blur)="closeSplitCCsDropdown()"
+              autocomplete="off" />
+            <div class="td-reply-dropdown" *ngIf="splitDropdownCCsOpen()">
+              <button type="button" *ngFor="let u of getFilteredSplitCCs()" class="td-reply-dropdown-item"
+                (mousedown)="addSplitCCs(u.id); $event.preventDefault()">
+                <span class="td-reply-user-name">{{ u.name }}</span>
+              </button>
+              <div class="td-reply-dropdown-empty" *ngIf="getFilteredSplitCCs().length === 0">No matching users</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /td-split-body -->
+
+      <!-- Footer -->
+      <div class="td-modal-footer">
+        <button type="button" class="td-btn td-btn-ghost" (click)="closeSplitModal()">Cancel</button>
+        <button type="button" class="td-btn td-btn-primary"
+          (click)="submitSplitTicket()"
+          [disabled]="!splitIsValid() || isSplitting">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+            <path d="M5 3H2v3M2 3l5 5M11 3h3v3M14 3l-5 5M8 8v5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          {{ isSplitting ? 'Creating…' : 'Create Split Ticket' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+  <!-- /SPLIT TICKET MODAL -->
+
+</div>
+
+

@@ -1,0 +1,92 @@
+<section class="notif-page">
+  <div class="notif-shell">
+    <header class="notif-hero">
+      <div class="notif-hero-text">
+        <div class="notif-hero-kicker">Inbox</div>
+        <h1 class="notif-hero-title">Notifications</h1>
+        <p class="notif-hero-desc">
+          Stay on top of tickets, tasks, and messages. Mark items seen or open linked pages.
+        </p>
+      </div>
+      <div class="notif-hero-actions">
+        <span class="notif-stat-pill" *ngIf="!isLoading() && notifications().length > 0">
+          <span class="notif-stat-pill__value">{{ unseenCount() }}</span>
+          <span class="notif-stat-pill__label">unread</span>
+        </span>
+        <button type="button" class="notif-btn notif-btn--primary" (click)="markAllSeen()">
+          Mark all seen
+        </button>
+      </div>
+    </header>
+
+    <div class="notif-panel">
+      <div class="notif-loading" *ngIf="isLoading()">
+        <span class="notif-spinner" aria-hidden="true"></span>
+        <span>Syncing notifications…</span>
+      </div>
+
+      <div class="notif-alert notif-alert--err" *ngIf="!isLoading() && errorText()" role="alert">
+        {{ errorText() }}
+      </div>
+
+      <ul class="notif-list" *ngIf="!isLoading() && !errorText() && notifications().length > 0">
+        <li
+          class="notif-card"
+          *ngFor="let n of notifications()"
+          [class.notif-card--unseen]="!n.isSeen">
+          <div class="notif-card__accent" [attr.data-type]="n.type"></div>
+          <div class="notif-card__body">
+            <div class="notif-card__top">
+              <span class="notif-card__icon" aria-hidden="true">{{ notificationIcon(n.type) }}</span>
+              <div class="notif-card__main">
+                <div class="notif-card__meta">
+                  <span class="notif-type-chip">{{ notificationTypeLabel(n.type) }}</span>
+                  <span *ngIf="!n.isSeen" class="notif-new-dot">New</span>
+                </div>
+                <p class="notif-card__text">{{ n.text }}</p>
+              </div>
+            </div>
+            <div class="notif-card__footer">
+              <time class="notif-card__time">{{ formatDate(n.date) }}</time>
+              <div class="notif-card__actions">
+                <button type="button" class="notif-chip notif-chip--muted" (click)="openNotification(n)">
+                  Mark seen
+                </button>
+                <button
+                  *ngIf="n.redirectLink"
+                  type="button"
+                  class="notif-chip notif-chip--accent"
+                  (click)="goToNotification(n)">
+                  Go to
+                </button>
+                <button type="button" class="notif-chip notif-chip--danger" (click)="deleteNotification(n)">
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+
+      <div class="notif-load-wrap" *ngIf="!isLoading() && !errorText() && notifications().length > 0 && canLoadMore()">
+        <button
+          type="button"
+          class="notif-btn notif-btn--outline"
+          [disabled]="isLoadingMore()"
+          (click)="loadMoreNotifications()">
+          <span *ngIf="!isLoadingMore()">Load 10 more</span>
+          <span *ngIf="isLoadingMore()" class="notif-load-inline">
+            <span class="notif-spinner notif-spinner--sm" aria-hidden="true"></span>
+            Loading…
+          </span>
+        </button>
+      </div>
+
+      <div class="notif-empty" *ngIf="!isLoading() && !errorText() && notifications().length === 0">
+        <div class="notif-empty__icon" aria-hidden="true">🔔</div>
+        <h2 class="notif-empty__title">You’re all caught up</h2>
+        <p class="notif-empty__text">New alerts will show up here as they arrive.</p>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,334 @@
+<div class="open-ticket-page">
+  <h2 class="open-ticket-title">Open Ticket</h2>
+  <form [formGroup]="createform" (ngSubmit)="submit()" class="open-ticket-form">
+    <div class="form-row">
+  
+      <!-- System -->
+      <div class="col-md-6">
+        <label class="form-label">Related System</label>
+        <select class="form-select" formControlName="relatedSystemId">
+          <option [ngValue]="null">Select a system</option>
+          <option *ngFor="let system of systems" [ngValue]="system.id">
+            {{ system.name }}
+          </option>
+        </select>
+      </div>
+  
+      <!-- Module -->
+      <div class="col-md-6" *ngIf="selectedsystemId()">
+        <label class="form-label">Related Module</label>
+        <select class="form-select" formControlName="relatedModuleId">
+          <option [ngValue]="null">Select a module</option>
+          <option *ngFor="let module of modules" [ngValue]="module.id">
+            {{ module.name }}
+          </option>
+        </select>
+      </div>
+  
+      <!-- SubModule -->
+      <div class="col-md-6" *ngIf="selectedmoduleId()" formGroupName="relatedSubModuleAnswer">
+        <label class="form-label">Related Sub Module</label>
+        <select class="form-select" formControlName="relatedSubModuleId">
+          <option [ngValue]="null">Select a sub module</option>
+          <option *ngFor="let sm of subModules" [ngValue]="sm.id">
+            {{ sm.name }}
+          </option>
+        </select>
+      </div>
+  
+      <!-- Priority -->
+      <div class="col-md-6">
+        <label class="form-label">Priority</label>
+        <select class="form-select" formControlName="priority">
+          <option *ngFor="let p of IssuePriorityValues" [ngValue]="p">
+            {{ IssuePriority[p] }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Ticket requester (admin only): optional; server defaults to you if empty -->
+      <div class="col-md-6" *ngIf="isAdminUser">
+        <label class="form-label" for="requester-dept-filter">Department (filter search)</label>
+        <select
+          id="requester-dept-filter"
+          class="form-select"
+          formControlName="requesterFilterDepartmentId">
+          <option [ngValue]="null">All departments</option>
+          <option *ngFor="let d of requesterDepartmentOptions()" [ngValue]="d.departmentId">
+            {{ d.departmentName || ('Department ' + d.departmentId) }}
+          </option>
+        </select>
+        <p class="field-hint field-hint--tight">Optional. Limits the employee list below to this department.</p>
+      </div>
+
+      <div class="col-12 multi-select-wrap" *ngIf="isAdminUser">
+        <label class="form-label">Ticket requester</label>
+        <p class="field-hint">
+          Optional. Leave empty to open the ticket as yourself. Search employees by name, number, or email (server-side filter).
+        </p>
+        <div class="chips-row" *ngIf="selectedRequester() as sr">
+          <span class="chip chip-requester">
+            {{ requesterDisplayLine(sr) }}
+            <span class="chip-meta">{{ requesterSubline(sr) }}</span>
+            <button type="button" class="chip-remove" (click)="clearRequester()" aria-label="Clear requester">×</button>
+          </span>
+        </div>
+        <div class="dropdown-wrap" *ngIf="!selectedRequester()">
+          <input
+            type="text"
+            class="form-control multi-select-input"
+            placeholder="Search employees…"
+            [value]="searchRequester()"
+            (input)="onRequesterSearchInput($any($event.target).value)"
+            (focus)="openRequesterDropdown()"
+            (blur)="closeRequesterDropdown()"
+            autocomplete="off" />
+          <div class="dropdown-list" *ngIf="requesterDropdownOpen()">
+            <div *ngIf="requesterSearchLoading()" class="dropdown-empty">Searching…</div>
+            <button
+              type="button"
+              *ngFor="let emp of requesterSearchResults()"
+              class="dropdown-item"
+              (mousedown)="selectRequester(emp); $event.preventDefault()">
+              {{ emp.nameEn }}
+              <span class="dropdown-item-id">
+                #{{ emp.employeeNumber }}
+                <ng-container *ngIf="emp.email"> · {{ emp.email }}</ng-container>
+                <ng-container *ngIf="emp.departmentName"> · {{ emp.departmentName }}</ng-container>
+              </span>
+            </button>
+            <div
+              *ngIf="!requesterSearchLoading() && requesterSearchResults().length === 0"
+              class="dropdown-empty">
+              No matching employees
+            </div>
+          </div>
+        </div>
+
+        <div class="notify-user-row">
+          <button
+            type="button"
+            class="notify-user-btn"
+            [class.notify-user-btn--on]="createform.get('notifyUser')?.value"
+            [class.notify-user-btn--off]="!createform.get('notifyUser')?.value"
+            (click)="toggleNotifyUser()"
+            [attr.aria-pressed]="createform.get('notifyUser')?.value">
+            {{ createform.get('notifyUser')?.value ? 'Notify user: On' : 'Notify user: Off' }}
+          </button>
+          <span class="notify-user-hint">Send notification to the requester when the ticket is created.</span>
+        </div>
+      </div>
+  
+      <!-- Subject -->
+      <div class="col-12">
+        <label class="form-label">Subject</label>
+        <input class="form-control" formControlName="subject" />
+        <small class="text-danger"
+               *ngIf="createform.get('subject')?.touched && createform.get('subject')?.invalid">
+          Subject is required
+        </small>
+      </div>
+  
+      <!-- Description -->
+      <div class="col-12">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" rows="4" formControlName="description"></textarea>
+        <small class="text-danger"
+               *ngIf="createform.get('description')?.touched && createform.get('description')?.invalid">
+          Description is required
+        </small>
+      </div>
+  
+      <!-- Attachments -->
+      <div class="col-12">
+        <label class="form-label">Attachments</label>
+        <input class="form-control" type="file" multiple (change)="onFilesSelected($event)" />
+        <small class="text-muted" *ngIf="createform.value.attachments?.length">
+          {{ createform.value.attachments?.length }} file(s) selected
+        </small>
+      </div>
+
+      <!-- To (recipients) -->
+      <div class="col-12 multi-select-wrap">
+        <label class="form-label">To</label>
+        <div class="chips-row">
+          <span *ngFor="let id of createform.get('to')?.value" class="chip">
+            {{ getUserName(id) }}
+            <button type="button" class="chip-remove" (click)="removeTo(id)" aria-label="Remove">×</button>
+          </span>
+        </div>
+        <div class="dropdown-wrap">
+          <input
+            type="text"
+            class="form-control multi-select-input"
+            placeholder="Search users..."
+            [value]="searchTo()"
+            (input)="onToSearchInput($any($event.target).value)"
+            (focus)="onToSearchFocus()"
+            (blur)="closeToDropdown()"
+            autocomplete="off" />
+          <div class="dropdown-list" *ngIf="dropdownToOpen()">
+            <div *ngIf="toSearchLoading()" class="dropdown-empty">Searching…</div>
+            <button
+              type="button"
+              *ngFor="let user of getFilteredUsersForTo()"
+              class="dropdown-item"
+              (mousedown)="addTo(user.id); $event.preventDefault()">
+              {{ user.name }}
+              <span class="dropdown-item-id">{{ user.id }}</span>
+            </button>
+            <div *ngIf="!toSearchLoading() && getFilteredUsersForTo().length === 0" class="dropdown-empty">No matching users</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CCs -->
+      <div class="col-12 multi-select-wrap">
+        <label class="form-label">CCs</label>
+        <div class="chips-row">
+          <span *ngFor="let id of createform.get('cCs')?.value" class="chip">
+            {{ getUserName(id) }}
+            <button type="button" class="chip-remove" (click)="removeCCs(id)" aria-label="Remove">×</button>
+          </span>
+        </div>
+        <div class="dropdown-wrap">
+          <input
+            type="text"
+            class="form-control multi-select-input"
+            placeholder="Search users..."
+            [value]="searchCCs()"
+            (input)="onCCsSearchInput($any($event.target).value)"
+            (focus)="onCCsSearchFocus()"
+            (blur)="closeCCsDropdown()"
+            autocomplete="off" />
+          <div class="dropdown-list" *ngIf="dropdownCCsOpen()">
+            <div *ngIf="ccsSearchLoading()" class="dropdown-empty">Searching…</div>
+            <button
+              type="button"
+              *ngFor="let user of getFilteredUsersForCCs()"
+              class="dropdown-item"
+              (mousedown)="addCCs(user.id); $event.preventDefault()">
+              {{ user.name }}
+              <span class="dropdown-item-id">{{ user.id }}</span>
+            </button>
+            <div *ngIf="!ccsSearchLoading() && getFilteredUsersForCCs().length === 0" class="dropdown-empty">No matching users</div>
+          </div>
+        </div>
+      </div>
+  
+    </div>
+  
+    <!-- Questions -->
+    <div class="mt-4" *ngIf="selectedsubmoduleId()" formGroupName="relatedSubModuleAnswer">
+  
+      <h5 class="mb-3">Questions</h5>
+  
+      <!-- TEXT -->
+      <div class="card mb-3" *ngIf="textQuestions.length">
+        <div class="card-header fw-semibold">Text Questions</div>
+        <div class="card-body" formArrayName="textAnswers">
+          <div *ngFor="let q of textQuestions; let i = index" class="mb-3" [formGroupName]="i">
+            <label class="form-label">
+              {{ q.questionHead }} <span *ngIf="q.isRequired" class="text-danger">*</span>
+            </label>
+
+            <input class="form-control" type="text" formControlName="value" />
+
+            <small class="text-danger"
+                   *ngIf="q.isRequired
+                       && textAnswersFA.at(i).get('value')?.touched
+                       && textAnswersFA.at(i).get('value')?.invalid">
+              Required
+            </small>
+          </div>
+        </div>
+      </div>
+  
+      <!-- DATE -->
+      <div class="card mb-3" *ngIf="dateQuestions.length">
+        <div class="card-header fw-semibold">Date Questions</div>
+        <div class="card-body" formArrayName="dateAnswers">
+          <div *ngFor="let q of dateQuestions; let i = index" class="mb-3" [formGroupName]="i">
+            <label class="form-label">
+              {{ q.questionHead }} <span *ngIf="q.isRequired" class="text-danger">*</span>
+            </label>
+
+            <input class="form-control" type="date" formControlName="value" />
+
+            <small class="text-danger"
+                   *ngIf="q.isRequired
+                       && dateAnswersFA.at(i).get('value')?.touched
+                       && dateAnswersFA.at(i).get('value')?.invalid">
+              Required
+            </small>
+          </div>
+        </div>
+      </div>
+  
+      <!-- SINGLE -->
+      <div class="card mb-3" *ngIf="singleQuestions.length">
+        <div class="card-header fw-semibold">Single Choice Questions</div>
+        <div class="card-body" formArrayName="singleChoiceAnswers">
+          <div *ngFor="let q of singleQuestions; let i = index" class="mb-3" [formGroupName]="i">
+            <label class="form-label d-block">
+              {{ q.questionHead }} <span *ngIf="q.isRequired" class="text-danger">*</span>
+            </label>
+
+            <div class="form-check" *ngFor="let opt of (q.options ?? [])">
+              <input class="form-check-input"
+                     type="radio"
+                     [value]="opt.id"
+                     formControlName="selectedOptionId"
+                     [id]="'sc-' + q.id + '-' + opt.id">
+              <label class="form-check-label" [for]="'sc-' + q.id + '-' + opt.id">
+                {{ opt.text }}
+              </label>
+            </div>
+
+            <small class="text-danger"
+                   *ngIf="q.isRequired
+                       && singleChoiceAnswersFA.at(i).get('selectedOptionId')?.touched
+                       && singleChoiceAnswersFA.at(i).get('selectedOptionId')?.invalid">
+              Select one option
+            </small>
+          </div>
+        </div>
+      </div>
+  
+      <!-- MULTI -->
+      <div class="card mb-3" *ngIf="multiQuestions.length">
+        <div class="card-header fw-semibold">Multiple Choice Questions</div>
+        <div class="card-body">
+          <div *ngFor="let q of multiQuestions" class="mb-3">
+            <label class="form-label d-block">
+              {{ q.questionHead }} <span *ngIf="q.isRequired" class="text-danger">*</span>
+            </label>
+  
+            <div class="form-check" *ngFor="let opt of (q.options ?? [])">
+              <input class="form-check-input"
+                     type="checkbox"
+                     [checked]="isMultiChecked(q.id, opt.id)"
+                     (change)="toggleMultiChoice(q.id, opt.id, $any($event.target).checked)"
+                     [id]="'mc-' + q.id + '-' + opt.id">
+              <label class="form-check-label" [for]="'mc-' + q.id + '-' + opt.id">
+                {{ opt.text }}
+              </label>
+            </div>
+  
+            <small class="text-danger"
+                   *ngIf="q.isRequired
+                       && multipleChoiceAnswersFA.at(multiIndex[q.id]).get('selectedOptions')?.touched
+                       && multipleChoiceAnswersFA.at(multiIndex[q.id]).get('selectedOptions')?.hasError('minArrayLength')">
+              Select at least one option
+            </small>
+          </div>
+        </div>
+      </div>
+  
+    </div>
+  
+    <button class="btn btn-primary mt-3" type="submit" [disabled]="createform.invalid">
+      Submit
+    </button>
+  </form>
+  

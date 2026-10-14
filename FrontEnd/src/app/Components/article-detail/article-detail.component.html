@@ -1,0 +1,296 @@
+<div class="detail-page">
+
+  <!-- ─── Header ─── -->
+  <div class="detail-header">
+    <a class="back-link" [routerLink]="['/articles']">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      All Articles
+    </a>
+    <span class="header-crumb" *ngIf="article">{{ article.title }}</span>
+    <button *ngIf="!isLoading && article && canUpdateArticle()"
+            class="update-mode-btn"
+            [class.active]="updateMode"
+            [disabled]="isMutating"
+            (click)="toggleUpdateMode()">
+      {{ updateMode ? 'Exit Update Mode' : 'Update Mode' }}
+    </button>
+  </div>
+
+  <!-- ─── Scroll area ─── -->
+  <div class="detail-scroll">
+
+    <!-- Loading skeleton -->
+    <div *ngIf="isLoading" class="detail-loading">
+      <div class="skel skel-title"></div>
+      <div class="skel skel-byline"></div>
+      <div class="skel skel-line"></div>
+      <div class="skel skel-line" style="width:82%"></div>
+      <div class="skel skel-line" style="width:68%"></div>
+      <div class="skel skel-line" style="width:90%"></div>
+    </div>
+
+    <!-- Not found -->
+    <div *ngIf="!isLoading && notFound" class="detail-notfound">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M16 16l16 16M32 16L16 32" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div class="nf-title">Article not found</div>
+      <a class="nf-back" [routerLink]="['/articles']">← Back to articles</a>
+    </div>
+
+    <!-- Article content -->
+    <div *ngIf="!isLoading && article" class="detail-inner">
+
+      <h1 class="detail-title">{{ article.title }}</h1>
+
+      <div class="detail-byline">
+        <span class="by-author">{{ article.authorName }}</span>
+        <span class="by-sep">·</span>
+        <span class="by-sys">{{ systemName }}</span>
+      </div>
+
+      <div class="detail-divider"></div>
+
+      <div *ngIf="updateMode && canUpdateArticle()" class="update-toolbar">
+        <button class="edit-btn" [disabled]="isMutating" (click)="startAddDraft('text')">+ Text</button>
+        <button class="edit-btn" [disabled]="isMutating" (click)="startAddDraft('link')">+ Link</button>
+        <button class="edit-btn" [disabled]="isMutating" (click)="startAddDraft('videoPath')">+ Video Path</button>
+        <button class="edit-btn" [disabled]="isMutating" (click)="startAddDraft('videoName')">+ Video Name</button>
+        <button class="edit-btn" [disabled]="isMutating" (click)="startAddDraft('pdfPath')">+ PDF Path</button>
+        <label class="edit-btn file-btn">
+          + Image
+          <input type="file" accept="image/*" [disabled]="isMutating" (click)="startAddDraft('imageUpload')" (change)="onImageSelected($event)" hidden>
+        </label>
+        <label class="edit-btn file-btn">
+          + Video
+          <input type="file" accept="video/*" [disabled]="isMutating" (click)="startAddDraft('videoUpload')" (change)="onVideoSelected($event)" hidden>
+        </label>
+        <label class="edit-btn file-btn">
+          + PDF
+          <input type="file" accept="application/pdf,.pdf" [disabled]="isMutating" (click)="startAddDraft('pdfUpload')" (change)="onPdfSelected($event)" hidden>
+        </label>
+      </div>
+
+      <div *ngIf="updateMode && canUpdateArticle() && pendingDraft" class="draft-add-card">
+        <div class="draft-add-head"
+             draggable="true"
+             (dragstart)="onDraftDragStart()"
+             (dragend)="onDraftDragEnd()">
+          <span class="draft-add-title">Add {{ getDraftTypeLabel(pendingDraft.kind) }} Block</span>
+          <button class="draft-cancel-btn" type="button" [disabled]="isMutating" (click)="cancelAddDraft()">Cancel</button>
+        </div>
+
+        <div class="draft-add-row">
+          <label>Position</label>
+          <span class="order-hint">Drag this card and drop it between blocks. {{ getDraftInsertPreview() }}</span>
+        </div>
+
+        <div class="draft-add-row" *ngIf="pendingDraft.kind === 'text'">
+          <label>Text</label>
+          <textarea rows="4"
+                    [(ngModel)]="pendingDraft.content"
+                    [disabled]="isMutating"
+                    placeholder="Enter text content"></textarea>
+        </div>
+
+        <div class="draft-add-row" *ngIf="pendingDraft.kind === 'link'">
+          <label>Link URL</label>
+          <input type="text"
+                 [(ngModel)]="pendingDraft.content"
+                 [disabled]="isMutating"
+                 placeholder="https://example.com">
+        </div>
+
+        <div class="draft-add-row" *ngIf="pendingDraft.kind === 'videoPath'">
+          <label>Video path</label>
+          <input type="text"
+                 [(ngModel)]="pendingDraft.content"
+                 [disabled]="isMutating"
+                 placeholder="Path or URL">
+        </div>
+
+        <div class="draft-add-row" *ngIf="pendingDraft.kind === 'videoName'">
+          <label>Video name</label>
+          <input type="text"
+                 [(ngModel)]="pendingDraft.content"
+                 [disabled]="isMutating"
+                 placeholder="Video name">
+        </div>
+
+        <div class="draft-add-row" *ngIf="pendingDraft.kind === 'pdfPath'">
+          <label>PDF path/url</label>
+          <input type="text"
+                 [(ngModel)]="pendingDraft.content"
+                 [disabled]="isMutating"
+                 placeholder="Path or URL">
+        </div>
+
+        <div class="draft-add-row" *ngIf="pendingDraft.kind === 'imageUpload' || pendingDraft.kind === 'videoUpload' || pendingDraft.kind === 'pdfUpload'">
+          <label>Selected file</label>
+          <div class="selected-file-name">{{ pendingDraft.file?.name || 'No file selected yet' }}</div>
+          <span class="order-hint">Tip: you can drag & drop the file here.</span>
+        </div>
+
+        <div class="draft-file-drop-zone"
+             (dragover)="onDraftFileDragOver($event)"
+             (drop)="onDraftFileDrop($event)">
+          Drop image/video/pdf file here
+        </div>
+
+        <div *ngIf="pendingDraft.error" class="draft-error">{{ pendingDraft.error }}</div>
+        <div *ngIf="pendingDraft.info" class="draft-info">{{ pendingDraft.info }}</div>
+
+        <div class="draft-add-actions">
+          <button class="confirm-add-btn" type="button" [disabled]="isMutating" (click)="confirmAddDraft()">
+            Confirm Add
+          </button>
+        </div>
+      </div>
+
+      <div class="detail-blocks">
+        <div *ngIf="updateMode && canUpdateArticle() && pendingDraft"
+             class="draft-slot"
+             [class.active]="pendingDraft.insertIndex === 0"
+             (click)="setDraftInsertIndex(0)"
+             (dragover)="onDraftSlotDragOver($event)"
+             (drop)="onDraftSlotDrop($event, 0)">
+          Drop here (top)
+        </div>
+        <ng-container *ngFor="let b of article.blocks; let i = index">
+
+          <button *ngIf="updateMode && canUpdateArticle()"
+                  class="remove-block-btn"
+                  [disabled]="isMutating"
+                  (click)="removeBlock(b.id)">
+            Remove block
+          </button>
+
+          <!-- Text (includes headings, bullets, quotes, code stored as Text type) -->
+          <p *ngIf="isTextBlock(b.type)"
+             class="vb-text"
+             [style.fontFamily]="b.textFont || null"
+             [style.fontSize]="b.textSize || null"
+             [innerHTML]="b.content">
+          </p>
+
+          <!-- Image — display at stored pixel dimensions if available -->
+          <div *ngIf="isImageBlock(b.type)"
+               class="vb-img"
+               [style.width]="b.imageWidth ? b.imageWidth + 'px' : null">
+            <img [src]="resolveImageUrl(b.content)"
+                 [attr.width]="b.imageWidth || null"
+                 [attr.height]="b.imageHeight || null"
+                 alt="">
+          </div>
+
+          <!-- Video upload -->
+          <div *ngIf="isVideoUploadBlock(b.type)"
+               class="vb-video"
+               [style.width]="b.imageWidth ? b.imageWidth + 'px' : null">
+            <video controls preload="metadata"
+                   [src]="resolveVideoUrl(b.content)"
+                   [attr.width]="b.imageWidth || null"
+                   [attr.height]="b.imageHeight || null"></video>
+          </div>
+
+          <!-- List — renders listItems as bullet points -->
+          <ul *ngIf="isListBlock(b.type)" class="vb-list">
+            <li *ngFor="let item of b.listItems"
+                class="vb-list-item"
+                [style.fontFamily]="item.textFont || null"
+                [style.fontSize]="item.textSize || null"
+                [innerHTML]="item.content">
+            </li>
+          </ul>
+
+          <!-- Link — show linkViewName as title if provided -->
+          <a *ngIf="isLinkBlock(b.type)"
+             class="vb-link"
+             [href]="b.content"
+             target="_blank"
+             rel="noopener noreferrer">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M7 11l4-4M6.5 7H5a3.5 3.5 0 000 7h1.5M11.5 7H13a3.5 3.5 0 010 7h-1.5"
+                    stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <div class="vb-link-text">
+              <div class="vb-link-name" *ngIf="b.linkViewName">{{ b.linkViewName }}</div>
+              <div class="vb-link-url">{{ b.content }}</div>
+              <div class="vb-link-domain">{{ getLinkDomain(b.content) }}</div>
+            </div>
+          </a>
+
+          <!-- Video path -->
+          <div *ngIf="isVideoPathBlock(b.type)"
+               class="vb-video"
+               [style.width]="b.imageWidth ? b.imageWidth + 'px' : null">
+            <video controls preload="metadata"
+                   [src]="resolveVideoUrl(b.content)"
+                   [attr.width]="b.imageWidth || null"
+                   [attr.height]="b.imageHeight || null"></video>
+          </div>
+
+          <!-- Video name -->
+          <div *ngIf="isVideoNameBlock(b.type)"
+               class="vb-video"
+               [style.width]="b.imageWidth ? b.imageWidth + 'px' : null">
+            <video controls preload="metadata"
+                   [src]="resolveVideoNameUrl(b.content)"
+                   [attr.width]="b.imageWidth || null"
+                   [attr.height]="b.imageHeight || null"></video>
+          </div>
+
+          <!-- PDF -->
+          <div *ngIf="isPdfBlock(b.type)" class="vb-pdf">
+            <div class="vb-pdf-top">
+              <span class="vb-pdf-label">PDF</span>
+              <div class="vb-pdf-actions">
+                <button class="vb-pdf-toggle"
+                        type="button"
+                        (click)="togglePdfCollapsed(b.id)">
+                  {{ isPdfCollapsed(b.id) ? 'Show PDF' : 'Hide PDF' }}
+                </button>
+                <a class="vb-pdf-open"
+                   [href]="resolvePdfUrl(b.content)"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                  Open
+                </a>
+              </div>
+            </div>
+            <object *ngIf="!isPdfCollapsed(b.id)"
+                    class="vb-pdf-object"
+                    [data]="getPdfEmbedResource(b)"
+                    type="application/pdf">
+              <a class="vb-pdf-open"
+                 [href]="resolvePdfUrl(b.content)"
+                 target="_blank"
+                 rel="noopener noreferrer">
+                Open PDF
+              </a>
+            </object>
+            <div *ngIf="!isPdfCollapsed(b.id) && pdfLoadingByBlockId[b.id]" class="vb-pdf-loading">
+              Loading PDF preview...
+            </div>
+          </div>
+
+          <div *ngIf="updateMode && canUpdateArticle() && pendingDraft"
+               class="draft-slot"
+               [class.active]="pendingDraft.insertIndex === i + 1"
+               (click)="setDraftInsertIndex(i + 1)"
+               (dragover)="onDraftSlotDragOver($event)"
+               (drop)="onDraftSlotDrop($event, i + 1)">
+            Drop here
+          </div>
+
+        </ng-container>
+      </div>
+
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.git/
+**/node_modules/
+**/*.user
+**/*.suo
+**/*.log
+
+!certs/**
+!ZenHrIntegrator/**
+!ITDepartmentSystem/**
+!docker-compose*.yml
+!**/Dockerfile

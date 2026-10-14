@@ -1,0 +1,82 @@
+@import 'ngx-toastr/toastr';
+
+/* ═══════════════════════════════════════════════════
+   FPI Brand Palette  (derived from the FPI logo)
+   ═══════════════════════════════════════════════════
+   Deep navy  = FPi letter color  (~#0e1c3e)
+   Corp blue  = mid blue          (~#1464aa)
+   Teal       = globe/circle icon (~#32afd2)
+   ═══════════════════════════════════════════════════ */
+:root {
+  /* Backgrounds */
+  --fpi-bg-deepest : #08152b;   /* darkest surface – body/navbar base     */
+  --fpi-bg-dark    : #0e1c3e;   /* navbar / card dark                     */
+  --fpi-bg-mid     : #122650;   /* sidebar / slightly lighter dark card   */
+
+  /* Brand colours */
+  --fpi-blue       : #1464aa;   /* primary corporate blue (buttons, links)*/
+  --fpi-blue-hover : #1070bf;   /* hover state                            */
+  --fpi-blue-dim   : rgba(20,100,170,0.18); /* translucent for highlights  */
+  --fpi-teal       : #32afd2;   /* teal accent (badges, borders, icons)   */
+  --fpi-teal-hover : #28a0c2;   /* teal hover                             */
+  --fpi-teal-dim   : rgba(50,175,210,0.18); /* translucent teal            */
+
+  /* Text on dark surfaces */
+  --fpi-text-bright : #e8f4fb;  /* near-white                             */
+  --fpi-text-mid    : #90b8d8;  /* secondary text on dark                 */
+  --fpi-text-muted  : #4e7a9e;  /* disabled / placeholder                 */
+
+  /* Light surfaces (pages, cards on white bg) */
+  --fpi-light-bg   : #eaf6fc;   /* page/card backgrounds                  */
+  --fpi-light-card : #ffffff;
+  --fpi-border     : rgba(50,175,210,0.22);  /* borders on dark            */
+  --fpi-border-light: #c6e4f5;              /* borders on light            */
+
+  /* Danger */
+  --fpi-danger     : #e05252;
+  --fpi-danger-dim : rgba(224,82,82,0.15);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01';
+  font-variation-settings: 'opsz' 32;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Regular.woff2') format('woff2');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Bold.woff2') format('woff2');
+  font-weight: 700;
+}

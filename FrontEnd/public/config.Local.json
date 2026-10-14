@@ -1,0 +1,11 @@
+{
+    "apiUrl4": "https://localhost:7253/",
+    "apiUrl": "https://10.10.10.152:5002/",
+    "apiUrl15": "http://10.10.10.152:5034/",
+    "apiUrl3": "http://localhost:8080/",
+
+    "apiUrl2": "https://10.10.10.107:4005/",
+    "zenUrl": "https://localhost:7271/",
+    "featureXEnabled": true
+  }
+  

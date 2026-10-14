@@ -1,0 +1,64 @@
+<nav class="pg" *ngIf="showBar()" aria-label="Pagination">
+  <div class="pg-inner">
+    <button
+      type="button"
+      class="pg-btn pg-edge"
+      [disabled]="firstDisabled()"
+      (click)="goFirst()"
+      aria-label="First page"
+      title="First page">
+      «
+    </button>
+    <button
+      type="button"
+      class="pg-btn"
+      [disabled]="prevDisabled()"
+      (click)="goPrev()"
+      aria-label="Previous page"
+      title="Previous page">
+      ‹
+    </button>
+
+    <div class="pg-pages" role="list">
+      <ng-container *ngFor="let item of pageItems(); trackBy: trackItem">
+        <span *ngIf="item === 'ellipsis'" class="pg-ellipsis" aria-hidden="true">…</span>
+        <button
+          *ngIf="item !== 'ellipsis'"
+          type="button"
+          class="pg-num"
+          [class.pg-num-active]="isActive(item)"
+          [disabled]="disabled"
+          (click)="goPage(item)"
+          [attr.aria-current]="isActive(item) ? 'page' : null"
+          [attr.aria-label]="'Page ' + item">
+          {{ item }}
+        </button>
+      </ng-container>
+    </div>
+
+    <button
+      type="button"
+      class="pg-btn"
+      [disabled]="nextDisabled()"
+      (click)="goNext()"
+      aria-label="Next page"
+      title="Next page">
+      ›
+    </button>
+    <button
+      type="button"
+      class="pg-btn pg-edge"
+      [disabled]="lastDisabled()"
+      (click)="goLast()"
+      aria-label="Last page"
+      title="Last page">
+      »
+    </button>
+  </div>
+
+  <p class="pg-meta">
+    Page <strong>{{ displayPage }}</strong> of <strong>{{ totalPages() }}</strong>
+    <span class="pg-meta-sep">·</span>
+    <span class="pg-meta-count">{{ totalCount }} total</span>
+  </p>
+</nav>

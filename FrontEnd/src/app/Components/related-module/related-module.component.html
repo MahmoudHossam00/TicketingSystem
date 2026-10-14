@@ -1,0 +1,81 @@
+<div class="related-module-card">
+  <div class="related-module-header">
+    <h2 class="related-module-title">Related Module</h2>
+    <p class="related-module-meta">System: {{ module()?.systemId }} · Module: {{ module()?.name }}</p>
+  </div>
+
+  <div class="related-module-submodules">
+    <h3 class="section-heading">Submodules</h3>
+    <ul class="submodule-list">
+      <li *ngFor="let subModule of subModules()">
+        <span *ngIf="subModule.numericId != null" class="submodule-list-num">#{{ subModule.numericId }} </span>{{ subModule.name }}
+      </li>
+    </ul>
+  </div>
+
+  <div class="related-module-actions" *ngIf="canMutate">
+    <button
+      *ngIf="!isAddSubModuleOpen()"
+      class="btn btn-primary"
+      (click)="openAddSubModule()">
+      Add SubModule
+    </button>
+    <div *ngIf="isAddSubModuleOpen()" class="inline-form">
+      <input
+        type="text"
+        class="form-input"
+        [(ngModel)]="addSubModuleText"
+        placeholder="Submodule name" />
+      <button class="btn btn-primary" (click)="addSubModule()">Add SubModule</button>
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th class="numeric-id-th">#</th>
+          <th>Id</th>
+          <th>Name</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let subModule of subModules()">
+          <td class="numeric-id-cell">{{ numericIdDisplay(subModule) }}</td>
+          <td class="id-cell">{{ subModule.id }}</td>
+          <td>
+            <input
+              *ngIf="canMutate && updatingSubModuleId() === subModule.id"
+              type="text"
+              class="form-input form-input-inline"
+              [(ngModel)]="updateSubModuleText" />
+            <span *ngIf="!canMutate || updatingSubModuleId() !== subModule.id">{{ subModule.name }}</span>
+          </td>
+          <td>
+            <div class="btn-group">
+              <button
+                *ngIf="canMutate && updatingSubModuleId() === subModule.id"
+                class="btn btn-primary btn-sm"
+                (click)="updateSubModule(subModule.id)">
+                Save
+              </button>
+              <button class="btn btn-secondary btn-sm" (click)="openSubModuleQuestions(subModule.id)">
+                Questions
+              </button>
+              <button
+                *ngIf="canMutate && updatingSubModuleId() !== subModule.id"
+                class="btn btn-ghost btn-sm"
+                (click)="openUpdateSubModule(subModule)">
+                Edit
+              </button>
+              <button *ngIf="canMutate" class="btn btn-danger btn-sm" (click)="deleteSubModule(subModule.id)">
+                Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

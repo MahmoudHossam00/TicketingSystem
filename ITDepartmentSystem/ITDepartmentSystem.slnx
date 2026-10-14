@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="nginx/nginx.conf" />
+  </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="ITDepartmentSystem/ITDepartmentSystem.csproj" />
+  <Project Path="ZenHrIntegrator/ZenHrIntegrator.csproj" />
+</Solution>

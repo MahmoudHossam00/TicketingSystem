@@ -1,0 +1,246 @@
+<nav *ngIf="shouldShowNavbar()" class="navbar">
+  <div class="navbar-container">
+
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand-logo">
+       <a href=""> <img src="images/logo-fpi.png" alt="FPI Ticketing Logo" /></a>
+      </div>
+
+      <div class="brand-text">
+        <div class="brand-title">FPI Ticketing</div>
+        <div class="brand-subtitle">Future Pharmaceutical Industries</div>
+      </div>
+    </div>
+
+    <!-- ✅ Checkbox toggle (بدون TS) -->
+    <input id="nav-toggle" class="nav-toggle-checkbox" type="checkbox" />
+
+    <!-- Hamburger Button -->
+    <label for="nav-toggle" class="nav-toggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </label>
+
+    <!-- Menu (Links + Actions) -->
+    <div class="navbar-collapse">
+      <div class="navbar-nav">
+
+        <!-- ── Dropdown groups ──────────────────────────────── -->
+        <div
+          *ngFor="let group of navGroups()"
+          class="nav-dropdown"
+          [class.nav-dropdown--active]="isGroupActive(group)">
+
+          <button
+            type="button"
+            class="nav-link nav-dropdown-trigger"
+            [class.active]="isGroupActive(group)"
+            (click)="toggleDropdown(group.id, $event)">
+            <span class="nav-icon-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                <path [attr.d]="group.icon"></path>
+              </svg>
+            </span>
+            <span>{{ group.label }}</span>
+            <svg class="nav-dropdown-chevron" [class.nav-dropdown-chevron--open]="openDropdown === group.id"
+              xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+            </svg>
+          </button>
+
+          <div class="nav-dropdown-menu" *ngIf="openDropdown === group.id" role="menu">
+            <a
+              *ngFor="let item of group.items"
+              [routerLink]="item.path"
+              class="nav-dropdown-item"
+              [class.active]="isActive(item.path)"
+              role="menuitem"
+              (click)="closeDropdown()">
+              <span class="nav-dropdown-item-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                  <path [attr.d]="item.icon"></path>
+                </svg>
+              </span>
+              <span>{{ item.label }}</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- ── Standalone: Messages ─────────────────────────── -->
+        <a *ngFor="let item of navItems()" [routerLink]="item.path" routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: false }" class="nav-link" [class.active]="isActive(item.path)">
+          <span class="nav-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+              <path [attr.d]="item.icon"></path>
+            </svg>
+            <span *ngIf="item.path === '/messanger' && unreadCount() > 0" class="nav-badge">
+              {{ unreadCount() > 99 ? '99+' : unreadCount() }}
+            </span>
+          </span>
+          <span>{{ item.label }}</span>
+        </a>
+
+      </div>
+
+      <div class="navbar-actions">
+        <div class="nav-user-greeting" aria-live="polite">
+          <span class="nav-user-greeting-hello">Hello,</span>
+          <span class="nav-user-greeting-name">{{ greetingDisplayName }}</span>
+        </div>
+        <div class="nav-notification" #notificationsMenuRoot>
+          <button type="button" class="nav-notification-btn" aria-label="Notifications"
+            [attr.aria-expanded]="notificationsMenuOpen ? 'true' : 'false'" (click)="toggleNotificationsMenu($event)">
+            <span class="nav-icon-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 16a2 2 0 0 0 1.995-1.85L10 14H6a2 2 0 0 0 2 2zm.104-14.995a1 1 0 0 0-.198 0A2.5 2.5 0 0 0 5.5 3.5v.628c0 .995-.284 1.97-.82 2.81l-.57.893A1.5 1.5 0 0 0 5.374 10h5.252a1.5 1.5 0 0 0 1.264-2.17l-.57-.892a5.25 5.25 0 0 1-.82-2.81V3.5a2.5 2.5 0 0 0-2.396-2.495z"></path>
+              </svg>
+              <span *ngIf="notificationUnreadCount() > 0" class="nav-badge nav-badge--notification">
+                {{ notificationUnreadCount() > 99 ? '99+' : notificationUnreadCount() }}
+              </span>
+            </span>
+          </button>
+
+          <div class="nav-notification-dropdown" *ngIf="notificationsMenuOpen" role="dialog" aria-label="Notifications">
+            <div class="nav-notification-header">
+              <div class="nav-notification-header-text">
+                <span class="nav-notification-kicker">Inbox</span>
+                <p class="nav-notification-title">Recent</p>
+              </div>
+              <button type="button" class="nav-notification-clear-btn" (click)="markAllNotificationsSeen()">Mark all seen</button>
+            </div>
+
+            <div class="nav-notification-permission-panel">
+              <span class="nav-notification-permission-status">
+                Desktop permission: <strong>{{ notificationPermission() }}</strong>
+              </span>
+              <div class="nav-notification-permission-actions">
+                <button type="button" class="nav-notification-clear-btn" (click)="enableDesktopNotifications()">
+                  Enable desktop notifications
+                </button>
+                <button type="button" class="nav-notification-clear-btn" (click)="disableDesktopNotifications()">
+                  Disable desktop notifications
+                </button>
+                <button type="button" class="nav-notification-clear-btn" (click)="toggleNotificationSoundMute()">
+                  {{ notificationSoundMuted() ? 'Unmute notification sound' : 'Mute notification sound' }}
+                </button>
+                <button type="button" class="nav-notification-clear-btn" (click)="sendTestDesktopNotification()">
+                  Test sound + popup
+                </button>
+              </div>
+              <span class="nav-notification-permission-status">
+                Popup toggle: <strong>{{ desktopNotificationsEnabled() ? 'enabled' : 'disabled' }}</strong> ·
+                Sound: <strong>{{ notificationSoundMuted() ? 'muted' : 'enabled' }}</strong>
+              </span>
+              <p class="nav-notification-permission-msg" *ngIf="notificationPermissionMessage()">
+                {{ notificationPermissionMessage() }}
+              </p>
+            </div>
+
+            <div class="nav-notification-list" *ngIf="recentNotificationsPreview.length > 0; else noRecentNotifications">
+              <button
+                type="button"
+                class="nav-notification-item"
+                *ngFor="let n of recentNotificationsPreview"
+                [class.nav-notification-item--unseen]="!n.isSeen"
+                (click)="openNotification(n)">
+                <span class="nav-notification-item-inner">
+                  <span class="nav-notification-icon-wrap" aria-hidden="true">
+                    <span class="nav-notification-icon">{{ notificationIcon(n.type) }}</span>
+                  </span>
+                  <span class="nav-notification-content">
+                    <span class="nav-notification-row">
+                      <span class="nav-notification-text">{{ n.text }}</span>
+                    </span>
+                    <span class="nav-notification-date-row">
+                      <span class="nav-notification-date">{{ formatNotificationDate(n.date) }}</span>
+                      <button
+                        *ngIf="n.redirectLink"
+                        type="button"
+                        class="nav-notification-go-btn"
+                        (click)="goToNotification($event, n)">
+                        Go to
+                      </button>
+                    </span>
+                  </span>
+                </span>
+              </button>
+            </div>
+            <ng-template #noRecentNotifications>
+              <div class="nav-notification-empty">
+                <span class="nav-notification-empty-icon" aria-hidden="true">🔔</span>
+                <p class="nav-notification-empty-title">Nothing new</p>
+                <p class="nav-notification-empty-sub">You’re caught up for now.</p>
+              </div>
+            </ng-template>
+
+            <button type="button" class="nav-notification-view-all" (click)="viewAllNotifications()">
+              <span>View all notifications</span>
+              <svg class="nav-notification-chevron" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="nav-profile" #profileMenuRoot>
+          <button type="button" class="nav-profile-trigger" (click)="toggleProfileMenu($event)"
+            [attr.aria-expanded]="profileMenuOpen ? 'true' : 'false'" aria-haspopup="true"
+            title="Profile picture">
+            <span class="nav-profile-avatar-wrap">
+              <img *ngIf="profileAvatarSrc && !profileImageLoadFailed" [src]="profileAvatarSrc" alt=""
+                class="nav-profile-avatar-img" (error)="profileImageLoadFailed = true" />
+              <span *ngIf="!profileAvatarSrc || profileImageLoadFailed" class="nav-profile-initials"
+                aria-hidden="true">{{ userDisplayInitials }}</span>
+            </span>
+          </button>
+          <div class="nav-profile-dropdown" *ngIf="profileMenuOpen" role="dialog" aria-label="Profile menu">
+            <p class="nav-profile-name">{{ authService.getUserName() || 'Signed in' }}</p>
+            <div class="nav-profile-large-wrap">
+              <img *ngIf="profileAvatarSrc && !profileImageLoadFailed" [src]="profileAvatarSrc" alt=""
+                class="nav-profile-large" (error)="profileImageLoadFailed = true" />
+              <span *ngIf="!profileAvatarSrc || profileImageLoadFailed" class="nav-profile-initials nav-profile-initials-lg"
+                aria-hidden="true">{{ userDisplayInitials }}</span>
+            </div>
+            <input #profilePicInput type="file" accept="image/*" class="nav-profile-file" tabindex="-1"
+              (change)="onProfilePictureFileChange($event)" />
+            <div class="nav-profile-btn-row">
+              <button type="button" class="nav-profile-change-btn nav-profile-change-btn--half"
+                [disabled]="isUploadingProfilePicture" (click)="profilePicInput.click()">
+                {{ isUploadingProfilePicture ? 'Uploading…' : 'Change picture' }}
+              </button>
+              <button type="button" class="nav-profile-change-btn nav-profile-change-btn--half nav-profile-change-btn--secondary"
+                (click)="togglePasswordForm()">
+                Change password
+              </button>
+            </div>
+
+            <div class="nav-profile-password-panel" *ngIf="showPasswordForm">
+              <label class="nav-profile-field-label" for="nav-pwd-old">Current password</label>
+              <input id="nav-pwd-old" class="nav-profile-input" type="password" autocomplete="current-password"
+                [(ngModel)]="pwdOld" />
+              <label class="nav-profile-field-label" for="nav-pwd-new">New password</label>
+              <input id="nav-pwd-new" class="nav-profile-input" type="password" autocomplete="new-password"
+                [(ngModel)]="pwdNew" />
+              <label class="nav-profile-field-label" for="nav-pwd-confirm">Confirm new password</label>
+              <input id="nav-pwd-confirm" class="nav-profile-input" type="password" autocomplete="new-password"
+                [(ngModel)]="pwdConfirm" />
+              <button type="button" class="nav-profile-change-btn nav-profile-submit-pwd" [disabled]="pwdSubmitting"
+                (click)="submitPasswordChange()">
+                {{ pwdSubmitting ? 'Saving…' : 'Update password' }}
+              </button>
+              <p class="nav-profile-msg nav-profile-msg--err" *ngIf="pwdError">{{ pwdError }}</p>
+              <p class="nav-profile-msg nav-profile-msg--ok" *ngIf="pwdSuccess">{{ pwdSuccess }}</p>
+            </div>
+
+            <p class="nav-profile-hint" *ngIf="isLoadingProfilePicture">Loading picture…</p>
+            <p class="nav-profile-msg nav-profile-msg--ok" *ngIf="profilePictureMessage">{{ profilePictureMessage }}</p>
+            <p class="nav-profile-msg nav-profile-msg--err" *ngIf="profilePictureError">{{ profilePictureError }}</p>
+          </div>
+        </div>
+        <button class="btn-logout" (click)="authService.logout()">
+          Logout
+        </button>
+      </div>
+    </div>
+
+  </div>
+</nav>

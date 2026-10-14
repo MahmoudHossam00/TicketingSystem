@@ -1,0 +1,432 @@
+<div class="td-page pd-details-page">
+
+  <div class="td-topbar">
+    <a routerLink="/projects" class="td-back">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Projects
+    </a>
+  </div>
+
+  <div *ngIf="isLoading" class="td-loading">
+    <div class="td-spinner"></div>
+    <p>Loading project…</p>
+  </div>
+
+  <div *ngIf="!isLoading && !project" class="td-empty">
+    <p>Project not found.</p>
+    <a routerLink="/projects" class="td-btn td-btn-outline" style="margin-top:1rem;display:inline-flex;">Back to projects</a>
+  </div>
+
+  <ng-container *ngIf="!isLoading && project as pr">
+
+    <div class="td-layout">
+      <div class="td-main">
+
+        <div class="td-card td-header-card pd-header-card">
+          <div class="td-subject-row">
+            <h1 class="td-subject">{{ pr.description || 'Project' }}</h1>
+            <div class="td-badges">
+              <span class="td-status-badge" *ngIf="currentStatus() as st"
+                [style.background]="st.color + '22'"
+                [style.color]="st.color">
+                <span class="td-dot" [style.background]="st.color"></span>
+                {{ st.name }}
+              </span>
+              <span class="td-status-badge" *ngIf="!currentStatus()" style="background:#f1f5f9;color:#64748b;">
+                <span class="td-dot" style="background:#94a3b8"></span>
+                No status
+              </span>
+              <span class="td-priority" [class]="'prio-' + (pr.priority ?? 0)">
+                {{ priorityLabel(pr.priority) }}
+              </span>
+              <span class="pd-state-badge pd-state-closed" *ngIf="pr.isClosed">Closed</span>
+              <span class="pd-state-badge pd-state-open" *ngIf="!pr.isClosed">Open</span>
+            </div>
+          </div>
+
+          <div class="td-meta-grid">
+            <div class="td-meta-pair">
+              <div class="td-meta-cell">
+                <span class="td-meta-key td-key-from">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  Owner
+                </span>
+                <span class="td-person-chip td-chip-from">{{ pr.userName || pr.userId || '—' }}</span>
+              </div>
+              <div class="td-meta-cell">
+                <span class="td-meta-key td-key-id">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/></svg>
+                   ID
+                </span>
+                <span class="td-id">{{ pr.numericId ?? '—' }}</span>
+                <span class="td-meta-key td-key-id">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/></svg>
+                  Project Serial
+                </span>
+                <span class="td-id">{{ pr.id }}</span>
+              </div>
+            </div>
+            <div class="td-meta-pair">
+              <div class="td-meta-cell">
+                <span class="td-meta-key td-key-to">Submodule</span>
+                <span class="td-person-chip td-chip-to">{{ subModuleName(pr.relatedSubModuleId) }}</span>
+              </div>
+              <div class="td-meta-cell">
+                <span class="td-meta-key td-key-to">Module</span>
+                <span class="td-person-chip td-chip-to">{{ moduleNameFromSubmodule(pr.relatedSubModuleId) }}</span>
+              </div>
+              <div class="td-meta-cell">
+                <span class="td-meta-key td-key-to">System</span>
+                <span class="td-person-chip td-chip-to">{{ systemNameFromSubmodule(pr.relatedSubModuleId) }}</span>
+              </div>
+              <div class="td-meta-cell">
+                <span class="td-meta-key">Dates</span>
+                <span class="td-id" style="font-family:inherit;font-size:0.85rem;color:var(--c-text);">
+                  {{ pr.startDate | date:'mediumDate' }} → {{ pr.endDate | date:'mediumDate' }}
+                </span>
+              </div>
+            </div>
+            <div class="td-meta-pair" *ngIf="pr.finishDate">
+              <div class="td-meta-cell td-meta-cell-full">
+                <span class="td-meta-key">Finished</span>
+                <span>{{ pr.finishDate | date:'mediumDate' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="td-header-extras">
+            <div class="td-header-extra">
+              <span class="td-header-extra-k">IP address</span>
+              <span class="td-header-extra-v">{{ pr.ipAddress || '—' }}</span>
+            </div>
+          </div>
+
+          <div class="td-actions" *ngIf="canManage()">
+            <button type="button" class="td-btn td-btn-outline" (click)="openStatusModal()">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.75"/><path d="M8 5v3l2 1" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+              Change status
+            </button>
+            <button type="button" class="td-btn td-btn-outline pd-close-toggle"
+              (click)="toggleProjectClosed()"
+              [disabled]="togglingClosed()">
+              {{ togglingClosed() ? 'Saving…' : (pr.isClosed ? 'Reopen project' : 'Close project') }}
+            </button>
+            <button type="button" class="td-btn td-btn-ghost-sm" style="color:#b91c1c;" (click)="deleteProject()">
+              Delete project
+            </button>
+          </div>
+        </div>
+
+        <div class="pd-section-tabs" role="tablist" aria-label="Project sections">
+          <button type="button" class="pd-section-tab" role="tab"
+            [class.pd-section-tab-active]="mainSectionTab() === 'overview'"
+            [attr.aria-selected]="mainSectionTab() === 'overview'"
+            (click)="setMainTab('overview')">
+            Overview
+          </button>
+          <button type="button" class="pd-section-tab" role="tab"
+            [class.pd-section-tab-active]="mainSectionTab() === 'tasks'"
+            [attr.aria-selected]="mainSectionTab() === 'tasks'"
+            (click)="setMainTab('tasks')">
+            Tasks
+            <span class="pd-section-tab-count" *ngIf="tasks().length">{{ tasks().length }}</span>
+          </button>
+        </div>
+
+        <ng-container *ngIf="mainSectionTab() === 'overview'">
+
+        <div class="td-card td-attachments" *ngIf="pr.attachments.length">
+          <div class="td-section-label">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M11.5 9.5l-5 5a3.536 3.536 0 01-5-5l7-7a2.357 2.357 0 013.333 3.333L5.167 12.5a1.179 1.179 0 01-1.667-1.667L9.5 4.833" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            {{ pr.attachments.length }} Attachment{{ pr.attachments.length > 1 ? 's' : '' }}
+          </div>
+          <ul class="td-attach-list">
+            <li *ngFor="let att of pr.attachments">
+              <a class="td-attach-link" [href]="baseUrl + pr.id + '/files/' + getFileName(att)" download>
+                {{ getFileName(att) }}
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="td-card pd-kpis-card" *ngIf="kpis.length">
+          <div class="td-section-label">KPIs</div>
+          <ul class="td-kpi-list">
+            <li *ngFor="let k of kpis" class="td-kpi-item">
+              <span class="td-kpi-name">{{ k.kpi?.kpiName || '—' }}</span>
+              <span class="td-kpi-type">Task: {{ k.projectTaskId }}</span>
+              <span class="td-kpi-type">By: {{ k.userName || k.userId || '—' }}</span>
+              <span class="td-kpi-type">{{ k.date | date:'mediumDate' }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="td-project-chat-wrap" *ngIf="projectId">
+          <app-project-chat-component
+            [projectId]="projectId"
+            [projectOwnerUserId]="pr.userId"
+            [composeDisabled]="pr.isClosed"
+          ></app-project-chat-component>
+        </div>
+
+        </ng-container>
+
+        <ng-container *ngIf="mainSectionTab() === 'tasks'">
+          <div class="td-card pd-tasks-card">
+            <div class="pd-tasks-card-head">
+              <div class="td-section-label pd-tasks-title">Tasks</div>
+              <p class="pd-tasks-sub">Work items for this project</p>
+            </div>
+
+            <p class="pd-tasks-banner pd-tasks-banner-closed" *ngIf="pr.isClosed">
+              This project is closed — tasks cannot be created.
+            </p>
+            <p class="pd-tasks-banner pd-tasks-banner-warn"
+              *ngIf="!pr.isClosed && !loadingTaskAgents() && !taskAgents().length && derivedSystemId()">
+              Add agents to system “{{ systemName(derivedSystemId()!) }}” before tasks can be created.
+            </p>
+            <p class="pd-tasks-banner pd-tasks-banner-info"
+              *ngIf="!pr.isClosed && !loadingTaskAgents() && taskAgents().length && !currentUserIsSystemAgent()">
+              Only agents for system “{{ systemName(derivedSystemId()!) }}” can create tasks here.
+            </p>
+
+            <div class="pd-task-form-shell" *ngIf="canCreateProjectTasks()">
+              <button type="button" class="pd-collapsible-trigger"
+                (click)="toggleTaskForm()"
+                [attr.aria-expanded]="taskFormExpanded()">
+                <svg class="pd-chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"
+                  [class.pd-chevron-open]="taskFormExpanded()">
+                  <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                {{ taskFormExpanded() ? 'Hide form' : 'New task' }}
+              </button>
+              <div class="pd-collapsible-panel" *ngIf="taskFormExpanded()">
+                <div class="pd-task-field">
+                  <label class="pd-task-label">Description <span class="pd-req">*</span></label>
+                  <textarea class="td-note-input pd-task-textarea" rows="3" [(ngModel)]="taskDescription"
+                    placeholder="What needs to be done?"></textarea>
+                </div>
+                <div class="pd-task-field">
+                  <label class="pd-task-label">Assigned to <span class="pd-req">*</span></label>
+                  <input class="pd-task-input" type="search" [(ngModel)]="taskAssigneeSearch"
+                    [disabled]="savingTask() || loadingTaskAgents()"
+                    placeholder="Filter system agents by name/number..." />
+                  <select class="pd-task-input"
+                    [(ngModel)]="taskAssigneeUserId"
+                    [disabled]="savingTask() || loadingTaskAgents()">
+                    <option [ngValue]="null" disabled>
+                      {{ loadingTaskAgents() ? 'Loading agents…' : 'Select a system agent…' }}
+                    </option>
+                    <option *ngFor="let a of filteredTaskAgentsForCreate('assignee')" [ngValue]="a.id">
+                      {{ agentDisplayName(a) }}
+                    </option>
+                  </select>
+                  <p class="pd-task-hint" *ngIf="!loadingTaskAgents() && !taskAgents().length && derivedSystemId()">
+                    No agents are configured for system “{{ systemName(derivedSystemId()!) }}”. Add agents in system settings.
+                  </p>
+                </div>
+                <div class="pd-task-field">
+                  <label class="pd-task-label">Blocking employee</label>
+                  <div class="pd-emp-lookup-wrap">
+                    <input class="pd-task-input" type="search"
+                      [ngModel]="taskBlockingSearch"
+                      (ngModelChange)="onTaskBlockingSearchInput($event)"
+                      (focus)="showTaskBlockingResults.set(true)"
+                      (blur)="hideTaskBlockingResults()"
+                      [disabled]="savingTask()"
+                      placeholder="Optional: type employee name/number..." />
+                    <div class="pd-emp-lookup-list" *ngIf="showTaskBlockingResults()">
+                      <div class="pd-emp-lookup-state" *ngIf="loadingTaskBlockingResults()">Searching...</div>
+                      <button type="button" class="pd-emp-lookup-item"
+                        *ngFor="let emp of taskBlockingResults()"
+                        (mousedown)="selectTaskBlockingEmployee(emp)">
+                        <span>{{ taskBlockingEmployeeLabel(emp) }}</span>
+                        <small>{{ emp.id }}</small>
+                      </button>
+                      <div class="pd-emp-lookup-state"
+                        *ngIf="!loadingTaskBlockingResults() && taskBlockingResults().length === 0">
+                        No employees found.
+                      </div>
+                    </div>
+                  </div>
+                  <p class="pd-task-hint" *ngIf="taskBlockingEmployeeId">
+                    Selected employee ID: {{ taskBlockingEmployeeId }}
+                  </p>
+                </div>
+                <div class="pd-task-field-row">
+                  <div class="pd-task-field">
+                    <label class="pd-task-label">Start <span class="pd-req">*</span></label>
+                    <input class="pd-task-input" type="date" [(ngModel)]="taskStartDate" />
+                  </div>
+                  <div class="pd-task-field">
+                    <label class="pd-task-label">End <span class="pd-req">*</span></label>
+                    <input class="pd-task-input" type="date" [(ngModel)]="taskEndDate" />
+                  </div>
+                </div>
+                <div class="pd-task-field-row">
+                  <div class="pd-task-field">
+                    <label class="pd-task-label">Status</label>
+                    <select class="pd-task-input" [(ngModel)]="taskStatusId">
+                      <option value="">— Optional —</option>
+                      <option *ngFor="let st of statuses" [value]="st.id">{{ st.name }}</option>
+                    </select>
+                  </div>
+                  <div class="pd-task-field">
+                    <label class="pd-task-label">Priority</label>
+                    <select class="pd-task-input" [(ngModel)]="taskPrioritySelect">
+                      <option value="">— Optional —</option>
+                      <option *ngFor="let n of [0,1,2,3]" [value]="n">{{ IssuePriority[n] }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="pd-task-field">
+                  <label class="pd-task-label">Attachments</label>
+                  <input type="file" multiple class="pd-task-file" (change)="onTaskFilesChange($event)" />
+                  <p class="pd-task-hint" *ngIf="taskFiles.length">{{ taskFiles.length }} file(s) selected</p>
+                </div>
+                <p class="pd-task-form-error" *ngIf="taskFormError()">{{ taskFormError() }}</p>
+                <div class="pd-task-form-actions">
+                  <button type="button" class="td-btn td-btn-primary" (click)="submitTask()"
+                    [disabled]="savingTask()">
+                    {{ savingTask() ? 'Saving…' : 'Create task' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <ul class="pd-task-list" *ngIf="tasks().length; else pdNoTasks">
+              <li *ngFor="let t of tasks()" class="pd-task-item">
+                <div class="pd-task-item-top">
+                  <div class="pd-task-badges">
+                    <span class="pd-task-status-pill"
+                      [style.background]="taskStatusColor(t.currentStatusId) + '22'"
+                      [style.color]="taskStatusColor(t.currentStatusId)">
+                      <span class="pd-task-dot" [style.background]="taskStatusColor(t.currentStatusId)"></span>
+                      {{ taskStatusName(t.currentStatusId) }}
+                    </span>
+                    <span class="td-priority pd-task-prio" [class]="'prio-' + (t.priority != null ? t.priority : 'na')">
+                      {{ priorityLabel(t.priority) }}
+                    </span>
+                    <span class="pd-task-closed" *ngIf="t.isClosed">Closed</span>
+                  </div>
+                </div>
+                <p class="pd-task-desc">{{ t.description || '—' }}</p>
+                <dl class="pd-task-meta">
+                  <div class="pd-task-meta-row">
+                    <dt>Assignee</dt>
+                    <dd>{{ taskAssigneeLabel(t) }}</dd>
+                  </div>
+                  <div class="pd-task-meta-row">
+                    <dt>Created</dt>
+                    <dd>{{ t.creationDate | date:'medium' }}</dd>
+                  </div>
+                  <div class="pd-task-meta-row">
+                    <dt>Schedule</dt>
+                    <dd>{{ t.startDate | date:'mediumDate' }} → {{ t.endDate | date:'mediumDate' }}</dd>
+                  </div>
+                  <div class="pd-task-meta-row" *ngIf="t.finishDate">
+                    <dt>Finished</dt>
+                    <dd>{{ t.finishDate | date:'mediumDate' }}</dd>
+                  </div>
+                  <div class="pd-task-meta-row">
+                    <dt>Task ID</dt>
+                    <dd class="pd-task-id">{{ t.id }}</dd>
+                  </div>
+                  <div class="pd-task-meta-row" *ngIf="t.blockingEmployeeId || t.blockingEmployeeName">
+                    <dt>Blocking employee</dt>
+                    <dd>{{ t.blockingEmployeeName || t.blockingEmployeeId }}</dd>
+                  </div>
+                </dl>
+                <div class="pd-task-attach-block" *ngIf="t.attachments.length">
+                  <span class="pd-task-attach-label">Attachments</span>
+                  <ul class="pd-task-attach-list">
+                    <li *ngFor="let att of t.attachments">
+                      <a class="pd-task-attach-link" [href]="taskAttachmentHref(t, att)" target="_blank" rel="noopener">
+                        {{ getFileName(att) }}
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+                <div class="pd-task-item-actions">
+                  <a class="td-btn td-btn-outline pd-task-details-btn" [routerLink]="['/taskdetails', t.id]">Task details</a>
+                </div>
+              </li>
+            </ul>
+            <ng-template #pdNoTasks>
+              <p class="pd-tasks-empty">
+                <ng-container *ngIf="canCreateProjectTasks()">No tasks yet. Expand “New task” above to add one.</ng-container>
+                <ng-container *ngIf="!canCreateProjectTasks() && pr.isClosed">No tasks for this closed project.</ng-container>
+                <ng-container *ngIf="!canCreateProjectTasks() && !pr.isClosed">No tasks for this project yet.</ng-container>
+              </p>
+            </ng-template>
+          </div>
+        </ng-container>
+
+      </div>
+
+      <aside class="td-sidebar pd-sidebar">
+        <div class="td-card td-notes-sidebar pd-notes-sidebar">
+          <div class="td-section-label">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 2h10a1 1 0 011 1v9a1 1 0 01-1 1H6l-3 2V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            Private notes
+            <span class="td-badge-count" *ngIf="notes.length">{{ notes.length }}</span>
+          </div>
+          <div class="td-notes-list" *ngIf="notes.length; else noNotes">
+            <div *ngFor="let n of notes; let i = index" class="td-note-item">
+              <span class="td-note-index">{{ i + 1 }}</span>
+              <p class="td-note-text">{{ n }}</p>
+            </div>
+          </div>
+          <ng-template #noNotes>
+            <p class="td-notes-empty">No private notes yet.</p>
+          </ng-template>
+          <div class="td-add-note" *ngIf="canManage()">
+            <textarea class="td-note-input" rows="3" [(ngModel)]="note" placeholder="Write a private note…"></textarea>
+            <button type="button" class="td-btn td-btn-primary td-note-submit" (click)="addPrivateNote()" [disabled]="!note.trim()">
+              Add note
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="td-modal-overlay" *ngIf="showStatusModal()" (mousedown)="closeStatusModal()">
+      <div class="td-modal" (mousedown)="$event.stopPropagation()">
+        <div class="td-modal-header">
+          <div>
+            <div class="td-modal-title">Change status</div>
+            <div class="td-modal-sub">Pick a new status for this project</div>
+          </div>
+          <button type="button" class="td-close-btn" (click)="closeStatusModal()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="td-modal-body">
+          <div class="td-search-wrap">
+            <svg class="td-search-icon" width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#94a3b8" stroke-width="1.6"/><path d="M11 11l3 3" stroke="#94a3b8" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <input class="td-search" type="text" placeholder="Search statuses…"
+              [value]="statusSearch()" (input)="statusSearch.set($any($event.target).value)" />
+          </div>
+          <div class="td-picker">
+            <button type="button" *ngFor="let s of filteredStatuses()" class="td-picker-item"
+              [class.selected]="selectedStatusId() === s.id" (click)="pickStatus(s.id)">
+              <span class="td-status-dot" [style.background]="s.color"></span>
+              <span class="td-picker-label">{{ s.name }}</span>
+              <svg *ngIf="selectedStatusId() === s.id" class="td-check pd-check" width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="td-picker-empty" *ngIf="filteredStatuses().length === 0">No matches</div>
+          </div>
+        </div>
+        <div class="td-modal-footer">
+          <button type="button" class="td-btn td-btn-ghost" (click)="closeStatusModal()">Cancel</button>
+          <button type="button" class="td-btn td-btn-primary" (click)="applyStatus()"
+            [disabled]="!selectedStatusId() || applyingStatus()">
+            {{ applyingStatus() ? 'Updating…' : 'Update status' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+</div>

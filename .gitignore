@@ -1,0 +1,45 @@
+# ===============================
+# .NET - Configuration
+# ===============================
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+
+# .NET Build
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+TestResults/
+publish/
+
+# ===============================
+# Angular
+# ===============================
+node_modules/
+dist/
+.angular/
+coverage/
+.nx/
+
+# ===============================
+# Secrets
+# ===============================
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+
+# ===============================
+# IDE & Logs
+# ===============================
+.idea/
+.vscode/
+*.log
+logs/
+.DS_Store
+Thumbs.db

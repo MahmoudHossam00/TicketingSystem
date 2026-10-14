@@ -1,0 +1,146 @@
+<div class="att-page">
+
+  <div class="att-header">
+    <div>
+      <h1 class="att-title">Tasks</h1>
+      <p class="att-subtitle">Browse tasks with filters and pagination</p>
+    </div>
+  </div>
+
+  <div class="att-tabs">
+    <button
+      *ngFor="let t of TABS"
+      type="button"
+      class="att-tab"
+      [class.active]="activeTab() === t.key"
+      (click)="setTab(t.key)">
+      {{ t.label }}
+    </button>
+  </div>
+
+  <div class="att-filters">
+    <div class="att-filter-group">
+      <label class="att-filter-label">System</label>
+      <select
+        class="att-filter-select"
+        [ngModel]="filterSystemId()"
+        (ngModelChange)="filterSystemId.set($event); applyFilters()">
+        <option value="">All systems</option>
+        <option *ngFor="let s of systems" [value]="s.id">{{ s.name }}</option>
+      </select>
+    </div>
+
+    <div class="att-filter-group">
+      <label class="att-filter-label">Status</label>
+      <select
+        class="att-filter-select"
+        [ngModel]="filterStatusId()"
+        (ngModelChange)="filterStatusId.set($event); applyFilters()">
+        <option value="">All statuses</option>
+        <option *ngFor="let s of issueStatuses" [value]="s.id">{{ s.name }}</option>
+      </select>
+    </div>
+
+    <div class="att-filter-group">
+      <label class="att-filter-label">From</label>
+      <input
+        type="date"
+        class="att-filter-select"
+        [ngModel]="filterFromDate()"
+        (ngModelChange)="filterFromDate.set($event); applyFilters()" />
+    </div>
+
+    <div class="att-filter-group">
+      <label class="att-filter-label">To</label>
+      <input
+        type="date"
+        class="att-filter-select"
+        [ngModel]="filterToDate()"
+        (ngModelChange)="filterToDate.set($event); applyFilters()" />
+    </div>
+
+    <button *ngIf="hasActiveFilters" type="button" class="att-clear-btn" (click)="clearFilters()">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+      Clear filters
+    </button>
+  </div>
+
+  <div class="att-card">
+    <div *ngIf="loadError" class="att-banner att-banner-error">{{ loadError }}</div>
+
+    <div *ngIf="isLoading" class="att-loading">
+      <span class="att-spinner"></span>
+      Loading tasks…
+    </div>
+
+    <div class="att-table-wrap" *ngIf="!isLoading && !loadError">
+      <table class="att-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Assignee</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Creation Date</th>
+            <th>Schedule</th>
+            <th>Project</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let task of tasks" class="att-row" (click)="viewTask(task.id)">
+            <td class="att-cell-desc" [title]="task.description">
+              {{ task.description || '—' }}
+            </td>
+            <td class="att-cell-user">{{ task.userName || task.userId || '—' }}</td>
+            <td>
+              <span class="att-priority" [class]="'prio-' + (task.priority != null ? task.priority : 'na')">
+                {{ getPriorityLabel(task.priority) }}
+              </span>
+            </td>
+
+            <td>
+              <span
+                class="att-status"
+                [style.background]="getStatusColor(task.currentStatusId) + '22'"
+                [style.color]="getStatusColor(task.currentStatusId)">
+                <span class="att-status-dot" [style.background]="getStatusColor(task.currentStatusId)"></span>
+                {{ getStatusName(task.currentStatusId) }}
+              </span>
+            </td>
+            <td class="att-cell-dates"> {{ task.creationDate| date:'mediumDate' }}</td>
+            <td class="att-cell-dates">
+              {{ task.startDate | date:'mediumDate' }} → {{ task.endDate | date:'mediumDate' }}
+            </td>
+            <td class="att-cell-project" (click)="viewProject(task.projectId, $event)">
+              <span class="att-project-link">{{ task.projectId | slice:0:8 }}…</span>
+            </td>
+            <td (click)="$event.stopPropagation()">
+              <button type="button" class="att-btn-view" (click)="viewTask(task.id, $event)">
+                View task
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p *ngIf="tasks.length === 0" class="att-empty">No tasks match the current filters.</p>
+    </div>
+
+    <div class="att-pagination" *ngIf="!isLoading && !loadError && totalRecords > 0">
+      <span class="att-page-info">
+        Page {{ currentPage() }} of {{ totalPages }}
+        <span class="att-muted">· {{ totalRecords }} total</span>
+      </span>
+      <div class="att-page-actions">
+        <button type="button" class="att-page-btn" [disabled]="currentPage() <= 1" (click)="prevPage()">
+          Previous
+        </button>
+        <button type="button" class="att-page-btn" [disabled]="currentPage() >= totalPages" (click)="nextPage()">
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

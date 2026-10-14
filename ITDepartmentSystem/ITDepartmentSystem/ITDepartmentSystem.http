@@ -1,0 +1,6 @@
+@ITDepartmentSystem_HostAddress = http://localhost:5034
+
+GET {{ITDepartmentSystem_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

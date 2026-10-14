@@ -1,0 +1,641 @@
+<div class="masterdata-page">
+  <div class="tabs">
+    <button
+      class="tab"
+      [class.active]="tab() === 'systems'"
+      (click)="switchToSystems()">
+      Systems
+    </button>
+    <button
+      class="tab"
+      [class.active]="tab() === 'issuestatuses'"
+      (click)="switchToIssuestatuses()">
+      Issue Statuses
+    </button>
+    <button
+      class="tab"
+      [class.active]="tab() === 'issuestypes'"
+      (click)="switchToIssuestypes()">
+      Issue Types
+    </button>
+    <button
+      class="tab"
+      [class.active]="tab() === 'companies'"
+      (click)="switchToCompanies()">
+      Companies
+    </button>
+    <button
+      class="tab"
+      [class.active]="tab() === 'externalsystems'"
+      (click)="switchToExternalSystems()">
+      External Systems
+    </button>
+    <button
+      class="tab"
+      [class.active]="tab() === 'fixedkpis'"
+      (click)="switchToFixedKPIs()">
+      Fixed KPIs
+    </button>
+    <button
+      class="tab"
+      [class.active]="tab() === 'systemdetails'"
+      [disabled]="true">
+      System Details
+    </button>
+
+  </div>
+
+  <p *ngIf="!canMutateMasterData()" class="masterdata-view-only-hint">
+    View only. To create, change, or remove master data, your account needs the <strong>MASTER</strong> or <strong>MASTERDATAADMIN</strong> role.
+  </p>
+
+  <div *ngIf="tab() === 'systems'" class="card">
+    <div class="card-header">
+      <span class="card-title">Systems</span>
+      <div class="btn-group" *ngIf="canMutateMasterData()">
+        <button *ngIf="!showcreatesystem()" class="btn btn-primary" (click)="showcreatesystem.set(true)">Create System</button>
+        <div *ngIf="showcreatesystem()" class="inline-form">
+          <input type="text" class="form-input" [(ngModel)]="createsystemtext" placeholder="System name" />
+          <button class="btn btn-primary" (click)="createsystem()">Create</button>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th class="numeric-id-th">#</th>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let system of systems()">
+            <td class="numeric-id-cell">{{ numericIdDisplay(system) }}</td>
+            <td class="id-cell">{{ system.id }}</td>
+            <td>
+              <div *ngIf="canMutateMasterData() && updatingid() === system.id" class="inline-form">
+                <input type="text" class="form-input" [(ngModel)]="updatesystemtext" />
+              </div>
+              <div *ngIf="!canMutateMasterData() || updatingid() !== system.id">{{ system.name }}</div>
+            </td>
+            <td>
+              <div class="btn-group">
+                <button *ngIf="updatingid() !== system.id" class="btn btn-primary btn-sm" (click)="getsystemDetails(system.id)">Details</button>
+                <button *ngIf="canMutateMasterData() && updatingid() !== system.id" class="btn btn-secondary btn-sm" (click)="updatingid.set(system.id)">Edit</button>
+                <button *ngIf="canMutateMasterData() && updatingid() === system.id" class="btn btn-primary btn-sm" (click)="updateSystem(system.id)">Save</button>
+                <button *ngIf="canMutateMasterData() && updatingid() !== system.id" class="btn btn-danger btn-sm" (click)="deletesystem(system.id)">Delete</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="tab() === 'systemdetails'" class="card">
+    <div class="card-header">
+      <span class="card-title">Agents</span>
+      <div class="btn-group" *ngIf="canMutateMasterData()">
+        <button *ngIf="!AddingAgent()" class="btn btn-primary" (click)="startaddingagent()">Add Agent</button>
+        <div *ngIf="AddingAgent()" class="inline-form">
+          <select class="form-select" [ngModel]="addagentuser()" (ngModelChange)="addagentuser.set($event)">
+            <option *ngFor="let user of availableUsers()" [value]="user.id">{{ user.name }}</option>
+          </select>
+          <select class="form-select" [ngModel]="addAgentSupervisorId()" (ngModelChange)="addAgentSupervisorId.set($event)">
+            <option [ngValue]="null">No supervisor</option>
+            <option *ngFor="let agent of agents()" [value]="agent.id">
+              {{ agent.userName }} ({{ agent.employeeNumber }})
+            </option>
+          </select>
+          <button class="btn btn-primary" (click)="addAgent()">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Picture</th>
+            <th>Id</th>
+            <th>Employee</th>
+            <th>User Name</th>
+            <th>Email</th>
+            <th>Manager</th>
+            <th>Systems</th>
+            <th>Is Disabled</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let agent of agents()">
+            <td><img [src]="agent.picture==null ? '/user.png' : getpicurl(agent.picture)" alt="Picture" class="table-avatar" /></td>
+            <td>{{ agent.id }}</td>
+            <td>{{ agent.employeeNumber }}</td>
+            <td>{{ agent.userName }}</td>
+            <td>{{ agent.email }}</td>
+            <td>
+              <div class="inline-form">
+                <select class="form-select" [ngModel]="supervisorSelection(agent.id)"
+                  (ngModelChange)="setSupervisorSelection(agent.id, $event)">
+                  <option [ngValue]="null">No supervisor</option>
+                  <option *ngFor="let supervisor of agents()" [value]="supervisor.id" [disabled]="supervisor.id === agent.id">
+                    {{ supervisor.userName }} ({{ supervisor.employeeNumber }})
+                  </option>
+                </select>
+                <button *ngIf="canMutateMasterData()" class="btn btn-secondary btn-sm" (click)="updateAgentSupervisor(agent.id)">
+                  Save
+                </button>
+              </div>
+              <small>{{ supervisorDisplayName(agentSupervisorByAgentId()[agent.id] ?? null) }}</small>
+            </td>
+            <td>{{ getsystems(agent) | json }}</td>
+            <td>{{ agent.isDisabled }}</td>
+            <td>
+              <button class="btn btn-primary btn-sm" (click)="EmployeeProfile(agent.employeeId)">Profile</button>
+              <button *ngIf="canMutateMasterData()" class="btn btn-danger btn-sm" (click)="removeAgent(agent.id)">Remove</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="modules-section">
+      <div class="section-title">Modules</div>
+      <div class="btn-group" style="margin-bottom: 0.75rem;" *ngIf="canMutateMasterData()">
+        <button *ngIf="!AddingModule()" class="btn btn-primary" (click)="startaddingModule()">Add Module</button>
+        <div *ngIf="AddingModule()" class="inline-form">
+          <input type="text" class="form-input" [ngModel]="addmoduletext()" (ngModelChange)="addmoduletext.set($event)" placeholder="Module name" />
+          <button class="btn btn-primary" (click)="addModule()">Add</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th class="numeric-id-th">#</th>
+              <th>Id</th>
+              <th>Name</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let module of modules()">
+              <td class="numeric-id-cell">{{ numericIdDisplay(module) }}</td>
+              <td class="id-cell">{{ module.id }}</td>
+              <td>{{ module.name }}</td>
+              <td>
+                <div class="btn-group">
+                  <button class="btn btn-primary btn-sm" (click)="ShowSubModules(module)">Related Sub Modules</button>
+                  <button *ngIf="canMutateMasterData()" class="btn btn-danger btn-sm" (click)="removeModule(module.id)">Remove</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+  <div *ngIf="tab() === 'issuestatuses'" class="card">
+    <div class="card-header">
+      <span class="card-title">Issue Statuses</span>
+  
+      <div class="btn-group" *ngIf="canMutateMasterData()">
+        <button *ngIf="!showcreateissuestatus()" 
+                class="btn btn-primary" 
+                (click)="showcreateissuestatus.set(true)">
+          Create Issue Status
+        </button>
+  
+        <div *ngIf="showcreateissuestatus()" class="inline-form">
+          <input type="text"
+                 class="form-input"
+                 [(ngModel)]="createissuestatustext"
+                 placeholder="Issue Status name" />
+  
+          <!-- COLOR PICKER -->
+          <input type="color"
+                 class="form-input"
+                 [(ngModel)]="createissuestatuscolor" />
+          <label for="CountsAsFinishedCreate">Counts As Finished</label>
+          <input type="checkbox"
+                  class="form-input"
+                  id="CountsAsFinishedCreate"
+                  aria-label="Counts As Finished"
+                 [(ngModel)]="createissuestatusisFinished">
+          <button class="btn btn-primary" (click)="createissuestatus()">Create</button>
+        </div>
+      </div>
+    </div>
+  
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th class="numeric-id-th">#</th>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Color</th>
+            <th>Counts As Finished</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+  
+        <tbody>
+          <tr *ngFor="let status of issuestatuses()">
+  
+            <td class="numeric-id-cell">{{ numericIdDisplay(status) }}</td>
+            <td class="id-cell">{{ status.id }}</td>
+  
+            <!-- NAME -->
+            <td>
+              <div *ngIf="canMutateMasterData() && updatingIssueStatusId() === status.id" class="inline-form">
+                <input type="text"
+                       class="form-input"
+                       [(ngModel)]="updateissuestatustext"/>
+              </div>
+  
+              <div *ngIf="!canMutateMasterData() || updatingIssueStatusId() !== status.id">
+                {{ status.name }}
+              </div>
+            </td>
+  
+            <!-- COLOR -->
+            <td>
+  
+              <div *ngIf="canMutateMasterData() && updatingIssueStatusId() === status.id">
+                <input type="color"
+                       [(ngModel)]="updateissuestatuscolor"/>
+              </div>
+  
+              <div *ngIf="!canMutateMasterData() || updatingIssueStatusId() !== status.id"
+                   class="status-color-badge"
+                   [style.background]="status.color">
+              </div>
+  
+            </td>
+            <!-- COLOR -->
+
+            <td>
+  
+              <div *ngIf="canMutateMasterData() && updatingIssueStatusId() === status.id">
+                <input type="checkbox"
+                       [(ngModel)]="updateissuestatusisFinished"/>
+              </div>
+  
+              <div *ngIf="!canMutateMasterData() || updatingIssueStatusId() !== status.id"
+                   
+                   >
+                   {{ status.isFinished }}
+                  
+              </div>
+  
+            </td>
+  
+            <!-- ACTIONS -->
+            <td>
+              <div class="btn-group">
+  
+                <button *ngIf="canMutateMasterData() && updatingIssueStatusId() !== status.id"
+                        class="btn btn-secondary btn-sm"
+                        (click)="openUpdateIssueStatus(status)">
+                  Edit
+                </button>
+  
+                <button *ngIf="canMutateMasterData() && updatingIssueStatusId() === status.id"
+                        class="btn btn-primary btn-sm"
+                        (click)="updateIssueStatus(status.id)">
+                  Save
+                </button>
+  
+                <button *ngIf="canMutateMasterData() && updatingIssueStatusId() !== status.id"
+                        class="btn btn-danger btn-sm"
+                        (click)="deleteIssueStatus(status.id)">
+                  Delete
+                </button>
+  
+              </div>
+            </td>
+  
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+
+
+
+  <!-- ── COMPANIES ─────────────────────────────────────────────── -->
+  <div *ngIf="tab() === 'companies'" class="card">
+    <div class="card-header">
+      <span class="card-title">Companies</span>
+      <div class="btn-group" *ngIf="canMutateMasterData()">
+        <button *ngIf="!showcreatecompany()" class="btn btn-primary" (click)="showcreatecompany.set(true)">
+          Add Company
+        </button>
+        <div *ngIf="showcreatecompany()" class="inline-form">
+          <input type="text" class="form-input" [(ngModel)]="createcompanytext" placeholder="Company name" />
+          <button class="btn btn-primary" (click)="createCompany()">Create</button>
+          <button class="btn btn-secondary" (click)="showcreatecompany.set(false)">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th class="numeric-id-th">#</th>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of companies()">
+            <td class="numeric-id-cell">{{ numericIdDisplay(c) }}</td>
+            <td class="id-cell">{{ c.id }}</td>
+
+            <td>
+              <div *ngIf="canMutateMasterData() && updatingCompanyId() === c.id" class="inline-form">
+                <input type="text" class="form-input" [(ngModel)]="updatecompanytext" />
+              </div>
+              <span *ngIf="!canMutateMasterData() || updatingCompanyId() !== c.id">{{ c.name }}</span>
+            </td>
+
+            <td>
+              <div class="btn-group">
+                <button *ngIf="canMutateMasterData() && updatingCompanyId() !== c.id" class="btn btn-secondary btn-sm" (click)="openUpdateCompany(c)">Edit</button>
+                <button *ngIf="canMutateMasterData() && updatingCompanyId() === c.id" class="btn btn-primary btn-sm" (click)="updateCompany(c.id)">Save</button>
+                <button *ngIf="canMutateMasterData() && updatingCompanyId() === c.id" class="btn btn-secondary btn-sm" (click)="updatingCompanyId.set(null)">Cancel</button>
+                <button *ngIf="canMutateMasterData() && updatingCompanyId() !== c.id" class="btn btn-danger btn-sm" (click)="deleteCompany(c.id)">Delete</button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="companies().length === 0">
+            <td colspan="4" class="empty-cell">No companies found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── ISSUE TYPES ──────────────────────────────────────────── -->
+  <div *ngIf="tab() === 'issuestypes'" class="card">
+    <div class="card-header">
+      <span class="card-title">Issue Types</span>
+      <div class="btn-group" *ngIf="canMutateMasterData()">
+        <button *ngIf="!showcreateissuetype()" class="btn btn-primary" (click)="showcreateissuetype.set(true)">
+          Add Issue Type
+        </button>
+        <div *ngIf="showcreateissuetype()" class="inline-form">
+          <input type="text" class="form-input" [(ngModel)]="createissuetypetext" placeholder="Issue type name" />
+          <button class="btn btn-primary" (click)="createIssueTypeEntry()">Create</button>
+          <button class="btn btn-secondary" (click)="showcreateissuetype.set(false)">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th class="numeric-id-th">#</th>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of issueTypes()">
+            <td class="numeric-id-cell">{{ numericIdDisplay(it) }}</td>
+            <td class="id-cell">{{ it.id }}</td>
+
+            <td>
+              <div *ngIf="canMutateMasterData() && updatingIssueTypeId() === it.id" class="inline-form">
+                <input type="text" class="form-input" [(ngModel)]="updateissuetypetext" />
+              </div>
+              <span *ngIf="!canMutateMasterData() || updatingIssueTypeId() !== it.id">{{ it.issueTypeName }}</span>
+            </td>
+
+            <td>
+              <div class="btn-group">
+                <button *ngIf="canMutateMasterData() && updatingIssueTypeId() !== it.id" class="btn btn-secondary btn-sm" (click)="openUpdateIssueType(it)">Edit</button>
+                <button *ngIf="canMutateMasterData() && updatingIssueTypeId() === it.id" class="btn btn-primary btn-sm" (click)="updateIssueTypeEntry(it.id)">Save</button>
+                <button *ngIf="canMutateMasterData() && updatingIssueTypeId() === it.id" class="btn btn-secondary btn-sm" (click)="updatingIssueTypeId.set(null)">Cancel</button>
+                <button *ngIf="canMutateMasterData() && updatingIssueTypeId() !== it.id" class="btn btn-danger btn-sm" (click)="deleteIssueTypeEntry(it.id)">Delete</button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="issueTypes().length === 0">
+            <td colspan="4" class="empty-cell">No issue types found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── EXTERNAL SYSTEMS ────────────────────────────────────── -->
+  <div *ngIf="tab() === 'externalsystems'" class="card">
+    <div class="card-header">
+      <span class="card-title">External Systems</span>
+      <div class="btn-group">
+        <button class="btn btn-secondary" (click)="downloadTemplate()" title="Download Excel import template">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="vertical-align:-2px;margin-right:4px"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          Download Template
+        </button>
+        <button class="btn btn-secondary" (click)="loadAllSystemsUsers()" [disabled]="isLoadingUsersInProgress()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="vertical-align:-2px;margin-right:4px"><path d="M14 8A6 6 0 112 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14 4v4h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {{ isLoadingUsersInProgress() ? 'Loading…' : 'Load All Users' }}
+        </button>
+        <button *ngIf="canMutateMasterData() && !showCreateExtSystem()" class="btn btn-primary" (click)="openCreateExtSystem()">
+          + Create External System
+        </button>
+      </div>
+    </div>
+
+    <!-- Create form -->
+    <div *ngIf="canMutateMasterData() && showCreateExtSystem()" class="ext-form-panel">
+      <div class="ext-form-title">New External System</div>
+      <div class="ext-form-grid">
+        <label class="ext-label">
+          Name <span class="ext-required">*</span>
+          <input class="form-input" [(ngModel)]="createExtForm.name" placeholder="System name" />
+        </label>
+        <label class="ext-label">
+          URL
+          <input class="form-input" [(ngModel)]="createExtForm.url" placeholder="https://..." />
+        </label>
+        <label class="ext-label">
+          Login URL
+          <input class="form-input" [(ngModel)]="createExtForm.loginURL" placeholder="Login endpoint" />
+        </label>
+        <label class="ext-label">
+          Get Users URL
+          <input class="form-input" [(ngModel)]="createExtForm.usersURL" placeholder="Users endpoint" />
+        </label>
+        <label class="ext-label">
+          Admin Username
+          <input class="form-input" [(ngModel)]="createExtForm.adminUserName" placeholder="Admin user" />
+        </label>
+        <label class="ext-label">
+          Admin Password
+          <input class="form-input" type="password" [(ngModel)]="createExtForm.adminPassword" placeholder="Password" />
+        </label>
+        <label class="ext-label ext-label-check">
+          <input type="checkbox" [(ngModel)]="createExtForm.isAnglarSystem" />
+          Angular System
+        </label>
+      </div>
+      <div class="btn-group" style="margin-top:.75rem">
+        <button class="btn btn-primary" (click)="submitCreateExtSystem()" [disabled]="!createExtForm.name.trim()">Create</button>
+        <button class="btn btn-secondary" (click)="showCreateExtSystem.set(false)">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th class="numeric-id-th">#</th>
+            <th>Id</th>
+            <th>Name</th>
+            <th>URL</th>
+            <th>Login URL</th>
+            <th>AllUsers  URL</th>
+
+            <!-- <th>Admin User</th> -->
+            <th>Angular?</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let sys of externalSystems()">
+
+            <!-- View mode (read-only users always see this row; mutators also when not in edit) -->
+            <ng-container *ngIf="!canMutateMasterData() || updatingExtSystemId() !== sys.id">
+              <td class="numeric-id-cell">{{ numericIdDisplay(sys) }}</td>
+              <td class="id-cell">{{ sys.id }}</td>
+              <td><strong>{{ sys.name }}</strong></td>
+              <td class="url-cell"><a *ngIf="sys.url" [href]="sys.url" target="_blank" class="ext-link">{{ sys.url }}</a><span *ngIf="!sys.url">—</span></td>
+              <td class="url-cell"><span *ngIf="sys.loginURL">{{ sys.loginURL }}</span><span *ngIf="!sys.loginURL">—</span></td>
+              <td class="url-cell"><span *ngIf="sys.getUsersURL">{{ sys.getUsersURL }}</span><span *ngIf="!sys.getUsersURL">—</span></td>
+              
+              <!-- <td>{{ sys.adminUserName || '—' }}</td> -->
+              <td>
+                <span class="ext-badge" [class.ext-badge-yes]="sys.isAnglarSystem" [class.ext-badge-no]="!sys.isAnglarSystem">
+                  {{ sys.isAnglarSystem ? 'Yes' : 'No' }}
+                </span>
+              </td>
+              <td>
+                <div class="btn-group">
+                  <!-- <button class="btn btn-secondary btn-sm" (click)="openUpdateExtSystem(sys)">Edit</button> -->
+                  <label *ngIf="canMutateMasterData()" class="btn btn-secondary btn-sm" title="Import users from Excel">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="vertical-align:-1px"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Import
+                    <input type="file" accept=".xlsx,.xls" style="display:none" (change)="onImportExcel($event, sys.id)" />
+                  </label>
+                  <button *ngIf="canMutateMasterData()" class="btn btn-danger btn-sm" (click)="deleteExtSystem(sys.id)">Delete</button>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Edit mode -->
+            <ng-container *ngIf="canMutateMasterData() && updatingExtSystemId() === sys.id">
+              <td class="numeric-id-cell">{{ numericIdDisplay(sys) }}</td>
+              <td class="id-cell">{{ sys.id }}</td>
+              <td><input class="form-input form-input-sm" [(ngModel)]="updateExtForm.name" /></td>
+              <td><input class="form-input form-input-sm" [(ngModel)]="updateExtForm.url" /></td>
+              <td><input class="form-input form-input-sm" [(ngModel)]="updateExtForm.loginURL" /></td>
+              <td><input class="form-input form-input-sm" [(ngModel)]="updateExtForm.usersURL" /></td>
+              <!-- <td><input class="form-input form-input-sm" [(ngModel)]="updateExtForm.adminUserName" /></td> -->
+              <td>
+                <label class="ext-check-inline">
+                  <input type="checkbox" [(ngModel)]="updateExtForm.isAnglarSystem" /> Angular
+                </label>
+              </td>
+              <td>
+                <div class="btn-group">
+                  <button class="btn btn-primary btn-sm" (click)="submitUpdateExtSystem(sys.id)">Save</button>
+                  <button class="btn btn-secondary btn-sm" (click)="updatingExtSystemId.set(null)">Cancel</button>
+                </div>
+              </td>
+            </ng-container>
+
+          </tr>
+          <tr *ngIf="externalSystems().length === 0">
+            <td colspan="8" class="empty-cell">No external systems found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── FIXED KPIs ──────────────────────────────────────────── -->
+  <div *ngIf="tab() === 'fixedkpis'" class="card">
+    <div class="card-header">
+      <span class="card-title">Fixed KPIs</span>
+      <div class="btn-group" *ngIf="canMutateMasterData()">
+        <button *ngIf="!showCreateKPI()" class="btn btn-primary" (click)="showCreateKPI.set(true)">
+          Add KPI
+        </button>
+        <div *ngIf="showCreateKPI()" class="inline-form">
+          <input type="text" class="form-input" [(ngModel)]="createKPIText" placeholder="KPI name" />
+          <button class="btn btn-primary" (click)="createFixedKPI()" [disabled]="!createKPIText.trim()">Create</button>
+          <button class="btn btn-secondary" (click)="showCreateKPI.set(false); createKPIText = ''">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th class="numeric-id-th">#</th>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Created At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let kpi of fixedKPIs()">
+            <td class="numeric-id-cell">{{ numericIdDisplay(kpi) }}</td>
+            <td class="id-cell">{{ kpi.id }}</td>
+
+            <td>
+              <div *ngIf="canMutateMasterData() && updatingKPIId() === kpi.id" class="inline-form">
+                <input type="text" class="form-input" [(ngModel)]="updateKPIText" />
+              </div>
+              <span *ngIf="!canMutateMasterData() || updatingKPIId() !== kpi.id">{{ kpi.name }}</span>
+            </td>
+
+            <td class="date-cell">{{ kpi.createdAt | date:'MMM d, y' }}</td>
+
+            <td>
+              <div class="btn-group">
+                <button *ngIf="canMutateMasterData() && updatingKPIId() !== kpi.id" class="btn btn-secondary btn-sm" (click)="openUpdateKPI(kpi)">Edit</button>
+                <button *ngIf="canMutateMasterData() && updatingKPIId() === kpi.id" class="btn btn-primary btn-sm" (click)="updateFixedKPI(kpi.id)">Save</button>
+                <button *ngIf="canMutateMasterData() && updatingKPIId() === kpi.id" class="btn btn-secondary btn-sm" (click)="updatingKPIId.set(null)">Cancel</button>
+                <button *ngIf="canMutateMasterData() && updatingKPIId() !== kpi.id" class="btn btn-danger btn-sm" (click)="deleteFixedKPI(kpi.id)">Delete</button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="fixedKPIs().length === 0">
+            <td colspan="5" class="empty-cell">No KPIs found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="selectedModule()">
+    <app-related-module [module]="selectedModule" [canMutate]="canMutateMasterData()"></app-related-module>
+  </div>
+</div>

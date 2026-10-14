@@ -1,0 +1,133 @@
+<div class="at-page">
+
+  <!-- ── Header ─────────────────────────────────── -->
+  <div class="at-header">
+    <div>
+      <h1 class="at-title">Tickets</h1>
+      <p class="at-subtitle">View and manage support tickets</p>
+    </div>
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────── -->
+  <div class="at-tabs">
+    <button
+      *ngFor="let t of TABS"
+      type="button"
+      class="at-tab"
+      [class.active]="activeTab() === t.key"
+      (click)="setTab(t.key)">
+      {{ t.label }}
+    </button>
+  </div>
+
+  <!-- ── Filters bar ────────────────────────────── -->
+  <div class="at-filters">
+    <div class="at-filter-group">
+      <label class="at-filter-label">System</label>
+      <select class="at-filter-select"
+              [ngModel]="filterSystemId()"
+              (ngModelChange)="filterSystemId.set($event); applyFilters()">
+        <option value="">All systems</option>
+        <option *ngFor="let s of systems" [value]="s.id">{{ s.name }}</option>
+      </select>
+    </div>
+
+    <div class="at-filter-group">
+      <label class="at-filter-label">Status</label>
+      <select class="at-filter-select"
+              [ngModel]="filterStatusId()"
+              (ngModelChange)="filterStatusId.set($event); applyFilters()">
+        <option value="">All statuses</option>
+        <option *ngFor="let s of issueStatuses" [value]="s.id">{{ s.name }}</option>
+      </select>
+    </div>
+
+    <div class="at-filter-group">
+      <label class="at-filter-label">From</label>
+      <input
+        type="date"
+        class="at-filter-select"
+        [ngModel]="filterFromDate()"
+        (ngModelChange)="filterFromDate.set($event); applyFilters()" />
+    </div>
+
+    <div class="at-filter-group">
+      <label class="at-filter-label">To</label>
+      <input
+        type="date"
+        class="at-filter-select"
+        [ngModel]="filterToDate()"
+        (ngModelChange)="filterToDate.set($event); applyFilters()" />
+    </div>
+
+    <button *ngIf="hasActiveFilters" type="button" class="at-clear-btn" (click)="clearFilters()">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+      Clear filters
+    </button>
+  </div>
+
+  <!-- ── Table card ─────────────────────────────── -->
+  <div class="at-card">
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="at-loading">
+      <span class="at-spinner"></span>
+      Loading tickets…
+    </div>
+
+    <div class="at-table-wrap" *ngIf="!isLoading">
+      <table class="at-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>System</th>
+            <th>Subject</th>
+            <th>Description</th>
+            <th>Priority</th>
+            <th>User</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ticket of tickets" class="at-row" (click)="viewTicket(ticket.id)">
+            <td class="at-cell-id">{{ ticket.numericId }}</td>
+            <td class="at-cell-system">{{ getticketsystem(ticket.subModuleId) }}</td>
+            <td class="at-cell-subject">{{ ticket.subject }}</td>
+            <td class="at-cell-desc" [title]="ticket.description">{{ ticket.description }}</td>
+            <td>
+              <span class="at-priority" [class]="'prio-' + (ticket.priority || 0)">
+                {{ getPriorityLabel(ticket.priority) }}
+              </span>
+            </td>
+            <td class="at-cell-user">{{ ticket.userName || ticket.userId || '—' }}</td>
+            <td> {{ ticket.createdAt | date:'mediumDate' }}</td>
+            <td>
+              <span class="at-status"
+                [style.background]="getStatusColor(ticket.issueStatusId) + '22'"
+                [style.color]="getStatusColor(ticket.issueStatusId)">
+                <span class="at-status-dot" [style.background]="getStatusColor(ticket.issueStatusId)"></span>
+                {{ getStatusName(ticket.issueStatusId) }}
+              </span>
+            </td>
+            <td (click)="$event.stopPropagation()">
+              <button type="button" class="at-btn-view" (click)="viewTicket(ticket.id)">
+                View
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="tickets.length === 0">
+            <td colspan="7" class="at-empty">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="6" width="24" height="20" rx="3" stroke="#cbd5e1" stroke-width="1.5"/><path d="M10 12h12M10 17h8" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <p>No tickets found for this view.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>

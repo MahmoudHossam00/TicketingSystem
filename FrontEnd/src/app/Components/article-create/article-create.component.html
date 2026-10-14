@@ -1,0 +1,667 @@
+<div class="create-page">
+
+  <!-- ══════════════════════ HEADER BAR ══════════════════════ -->
+  <div class="create-header">
+
+    <button class="back-btn" (click)="goBack()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Articles
+    </button>
+
+    <div class="header-mid">
+      <span class="header-label">New Article</span>
+    </div>
+
+    <div class="header-right">
+      <button class="pub-btn"
+              (click)="publish()"
+              [disabled]="isPublishing || !selectedSystemId || !articleModel.title.trim()">
+        <ng-container *ngIf="!isPublishing">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M6.5 1L11 5.5M6.5 1L2 5.5M6.5 1v9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Publish
+        </ng-container>
+        <ng-container *ngIf="isPublishing">Publishing…</ng-container>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════ FORMATTING TOOLBAR ══════════════ -->
+  <div class="create-toolbar">
+
+    <!-- Default font + size (left anchor — apply to all new blocks) -->
+    <div class="tb-group tb-defaults-group">
+      <span class="tb-defaults-label">Default</span>
+      <select class="tb-font-select"
+              title="Default font for new blocks"
+              [(ngModel)]="defaultFont">
+        <option value="">Font</option>
+        <option *ngFor="let f of fonts.slice(1)" [value]="f.value">{{ f.label }}</option>
+      </select>
+      <select class="tb-size-select"
+              title="Default size for new blocks"
+              [(ngModel)]="defaultSize">
+        <option value="">Size</option>
+        <option *ngFor="let s of fontSizes" [value]="s">{{ s }}</option>
+      </select>
+    </div>
+
+    <div class="tb-sep"></div>
+
+    <!-- Inline selection font / size (applies to selected text) -->
+    <!-- <div class="tb-group">
+      <select class="tb-font-select"
+              title="Apply font to selected text"
+              (mousedown)="saveSelection()"
+              (change)="applyFont($any($event.target).value); $any($event.target).value = ''">
+        <option value="" disabled selected>Font ✎</option>
+        <option *ngFor="let f of fonts.slice(1)" [value]="f.value">{{ f.label }}</option>
+      </select>
+    </div> -->
+
+    <!-- <div class="tb-group">
+      <select class="tb-size-select"
+              title="Apply size to selected text"
+              (mousedown)="saveSelection()"
+              (change)="applyFontSize($any($event.target).value); $any($event.target).value = ''">
+        <option value="" disabled selected>Size ✎</option>
+        <option *ngFor="let s of fontSizes" [value]="s">{{ s }}</option>
+      </select>
+    </div> -->
+
+    <div class="tb-sep"></div>
+
+    <!-- B / I / U -->
+    <!-- <div class="tb-group">
+      <button class="tb-btn" title="Bold (Ctrl+B)"
+              (mousedown)="saveSelection()" (click)="format('bold')"><b>B</b></button>
+      <button class="tb-btn" title="Italic (Ctrl+I)"
+              (mousedown)="saveSelection()" (click)="format('italic')"><em>I</em></button>
+      <button class="tb-btn" title="Underline (Ctrl+U)"
+              (mousedown)="saveSelection()" (click)="format('underline')"><u>U</u></button>
+    </div> -->
+
+    <div class="tb-sep"></div>
+
+    <!-- Block types -->
+    <div class="tb-group">
+      <!-- <button class="tb-btn" title="Heading 1  (#·)" (click)="addBlock('h1')">H1</button> -->
+      <!-- <button class="tb-btn" title="Heading 2  (##·)" (click)="addBlock('h2')">H2</button> -->
+      <button class="tb-btn" title="Bullet list  (-·)" (click)="addBlock('list')">• List</button>
+      <!-- <button class="tb-btn" title="Blockquote  (>·)" (click)="addBlock('quote')">" Quote</button> -->
+      <!-- <button class="tb-btn" title="Code block  (```)" (click)="addBlock('code')">Code</button> -->
+      <!-- <button class="tb-btn" title="Divider  (---·)" (click)="addBlock('divider')">—</button> -->
+    </div>
+
+    <div class="tb-sep"></div>
+
+    <!-- Insert image / link -->
+    <div class="tb-group">
+      <button class="tb-btn" title="Insert image" (click)="triggerImagePick()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <rect x="1" y="1" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.2"/>
+          <circle cx="4.5" cy="4.5" r="1" fill="currentColor"/>
+          <path d="M1 9l3-3 2 2 2-3 3 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Image
+      </button>
+      <button class="tb-btn" title="Insert video" (click)="triggerVideoPick()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <rect x="1" y="2" width="8" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M9 5l3-1v5l-3-1" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+        </svg>
+        Video
+      </button>
+      <button class="tb-btn" title="Insert PDF" (click)="triggerPdfPick()">
+        PDF
+      </button>
+      <button class="tb-btn" title="Insert video path" (click)="promptVideoLinkPath()">
+        Video Path
+      </button>
+      <button class="tb-btn" title="Insert video name" (click)="promptVideoName()">
+        Video Name
+      </button>
+      <button class="tb-btn" title="Insert link" (click)="promptLink()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <path d="M5 8l3-3M4 7a2.5 2.5 0 003.5 3.5l1.5-1.5A2.5 2.5 0 005 5.5L3.5 7"
+                stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        Link
+      </button>
+    </div>
+
+    <input type="file" #fileInput accept="image/*" hidden (change)="onFileSelected($event)">
+    <input type="file" #videoInput accept="video/*" hidden (change)="onVideoSelected($event)">
+    <input type="file" #pdfInput accept="application/pdf,.pdf" hidden (change)="onPdfSelected($event)">
+
+    <div class="tb-drag-hint">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Drag images anywhere
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════ ARTICLE BODY ════════════════════ -->
+  <div class="create-scroll" (paste)="onPaste($event)">
+    <div class="create-inner">
+
+      <!-- Title -->
+      <input class="article-title-inp"
+             [(ngModel)]="articleModel.title"
+             placeholder="Article title…"
+             autofocus/>
+
+      <!-- Author / system meta -->
+      <div class="article-byline">
+        <span class="by-author">{{ currentUserName || 'Author' }}</span>
+        <span class="by-sep">·</span>
+        <!-- System selector lives here so it's always visible -->
+        <div class="by-sys-wrap" [class.by-sys-required]="!selectedSystemId">
+          <svg class="by-sys-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M4 6h4M6 4v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <select class="by-sys-select"
+                  [ngModel]="selectedSystemId"
+                  (ngModelChange)="onSystemChange($event)">
+            <option value="">Select system…</option>
+            <option *ngFor="let s of agentSystems" [value]="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <span class="by-sep">·</span>
+        <span class="by-draft">Draft</span>
+      </div>
+
+      <!-- ══════ CONTENT AREA ══════ -->
+      <div class="content-area"
+           #contentArea
+           [class.drag-active]="dropTargetIndex !== null"
+           (dragover)="onDragOver($event)"
+           (dragleave)="onDragLeave($event)"
+           (drop)="onDrop($event)"
+           (click)="onContentAreaClick($event)">
+
+        <ng-container *ngFor="let b of articleModel.blocks; let i = index; trackBy: trackBlock">
+
+          <!-- Drop indicator BEFORE this block -->
+          <div class="drop-zone"
+               [class.show]="dropTargetIndex === i || blockDropTargetIndex === i"
+               (dragover)="onBlockDragOverZone($event, i)"
+               (drop)="onBlockDropZone($event, i)">
+            <div class="drop-line"></div>
+          </div>
+
+          <!-- Block wrapper -->
+          <div class="block-wrap"
+               (dragover)="onBlockDragOverWrap($event, i)"
+               (drop)="onBlockDropWrap($event, i)">
+
+            <div class="block-side">
+            <!-- Drag handle + delete -->
+            <div class="block-handle">
+              <div class="handle-grip"
+                   draggable="true"
+                   title="Drag to reorder"
+                   (dragstart)="onBlockDragStart($event, i)"
+                   (dragend)="onBlockDragEnd()">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M4.5 3.2h5M4.5 7h5M4.5 10.8h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <button class="move-block-btn"
+                      title="Move block up"
+                      [disabled]="!canMoveBlockUp(i)"
+                      (click)="moveBlockBy(i, -1)">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M5.5 9V2M2.5 5.2L5.5 2.2 8.5 5.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button class="move-block-btn"
+                      title="Move block down"
+                      [disabled]="!canMoveBlockDown(i)"
+                      (click)="moveBlockBy(i, 1)">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M5.5 2v7M2.5 5.8l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button class="del-block" title="Delete block" (click)="deleteBlock(i)">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+            </div>
+
+            <div class="block-main">
+
+            <!-- Per-block font + size controls (text-like and list blocks only) -->
+            <div class="block-fmt"
+                 *ngIf="isEditableBlock(b.renderType) || b.renderType === 'list'">
+              <select class="bfmt-sel"
+                      title="Font family"
+                      (change)="setBlockFont(i, $any($event.target).value)">
+                <option value="" [selected]="!b.textFont">Font</option>
+                <option *ngFor="let f of fonts.slice(1)"
+                        [value]="f.value"
+                        [selected]="b.textFont === f.value">{{ f.label }}</option>
+              </select>
+              <select class="bfmt-sel bfmt-size"
+                      title="Font size"
+                      (change)="setBlockSize(i, $any($event.target).value)">
+                <option value="" [selected]="!b.textSize">Size</option>
+                <option *ngFor="let s of fontSizes"
+                        [value]="s"
+                        [selected]="b.textSize === s">{{ s }}</option>
+              </select>
+            </div>
+
+            <!-- ── Editable text blocks ── -->
+            <ng-container *ngIf="isEditableBlock(b.renderType)">
+              <div #editableBlock
+                   contenteditable="true"
+                   [class]="getBlockClass(b.renderType)"
+                   [attr.data-placeholder]="getPlaceholder(b.renderType)"
+                   [style.fontFamily]="b.textFont || null"
+                   [style.fontSize]="b.textSize || null"
+                   (focus)="focusedBlockIndex = i; focusedListItem = null"
+                   (blur)="focusedBlockIndex = null"
+                   (input)="b.content = $any($event.target).innerHTML"
+                   (keydown)="onBlockKeyDown($event, i)">
+              </div>
+            </ng-container>
+
+            <!-- ── List block ── -->
+            <div *ngIf="b.renderType === 'list'" class="list-block">
+              <div *ngFor="let item of b.listItems; let j = index" class="list-item-row">
+                <span class="list-bullet-dot">•</span>
+                <div class="list-item-content"
+                     contenteditable="true"
+                     [attr.data-block]="i"
+                     [attr.data-item]="j"
+                     [style.fontFamily]="item.textFont || null"
+                     [style.fontSize]="item.textSize || null"
+                     data-placeholder="List item…"
+                     (focus)="onListItemFocus(i, j)"
+                     (input)="onListItemInput($event, item)"
+                     (keydown)="onListItemKeyDown($event, i, j)">
+                </div>
+                <button class="list-item-del"
+                        title="Remove item"
+                        (mousedown)="$event.preventDefault()"
+                        (click)="removeListItem(i, j)">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <button class="list-add-item-btn"
+                      (mousedown)="$event.preventDefault()"
+                      (click)="addListItem(i, (b.listItems?.length || 1) - 1)">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                </svg>
+                Add item
+              </button>
+
+              <button class="list-continue-btn" title="Add text block below list" (click)="focusNextOrAdd(i, $event)">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1v10M2 7l4 4 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Continue writing
+              </button>
+            </div>
+
+            <!-- ── Image block ── -->
+            <div *ngIf="b.renderType === 'img'"
+                 class="img-block"
+                 [class.selected]="selectedMediaIndex === i"
+                 [class.media-dragging]="draggingBlockIndex === i"
+                 [style.width]="(b.imgWidth || 100) + '%'"
+                 (click)="selectMedia(i, $event)"
+                 draggable="true"
+                 (dragstart)="onMediaBlockDragStart($event, i)"
+                 (dragend)="onBlockDragEnd()">
+
+              <img draggable="false" [src]="b.previewUrl || b.content" [alt]="b.caption || ''">
+
+              <!-- SE resize handle (only when selected) -->
+              <div *ngIf="selectedMediaIndex === i"
+                   class="img-resize-se no-block-drag"
+                   (mousedown)="startResize($event, i)"
+                   title="Drag to resize">
+              </div>
+
+              <!-- Width badge (only when selected) -->
+              <div *ngIf="selectedMediaIndex === i" class="img-width-badge">
+                {{ b.imgWidth || 100 }}%
+              </div>
+
+              <div class="img-caption no-block-drag"
+                   contenteditable="true"
+                   data-placeholder="Add a caption…"
+                   (input)="b.caption = $any($event.target).innerText">
+              </div>
+
+              <!-- "Continue writing" hint -->
+              <button class="img-continue-btn no-block-drag"
+                      *ngIf="selectedMediaIndex === i"
+                      title="Continue writing below"
+                      (click)="focusNextOrAdd(i, $event)">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1v10M2 7l4 4 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Continue writing
+              </button>
+
+            </div>
+
+            <!-- ── Video block ── -->
+            <div *ngIf="b.renderType === 'video'"
+                 class="img-block video-block"
+                 [class.selected]="selectedMediaIndex === i"
+                 [class.media-dragging]="draggingBlockIndex === i"
+                 [style.width]="(b.imgWidth || 100) + '%'"
+                 (click)="selectMedia(i, $event)"
+                 draggable="true"
+                 (dragstart)="onMediaBlockDragStart($event, i)"
+                 (dragend)="onBlockDragEnd()">
+
+              <video draggable="false" [src]="b.previewUrl || b.content" controls preload="metadata"></video>
+
+              <div *ngIf="selectedMediaIndex === i"
+                   class="img-resize-se no-block-drag"
+                   (mousedown)="startResize($event, i)"
+                   title="Drag to resize">
+              </div>
+
+              <div *ngIf="selectedMediaIndex === i" class="img-width-badge">
+                {{ b.imgWidth || 100 }}%
+              </div>
+
+              <div *ngIf="selectedMediaIndex === i" class="media-size-row no-block-drag" (click)="$event.stopPropagation()">
+                <span>Width</span>
+                <input type="range"
+                       min="20"
+                       max="100"
+                       step="1"
+                       [ngModel]="b.imgWidth || 100"
+                       (ngModelChange)="setMediaWidth(i, $event)">
+                <input type="number"
+                       min="20"
+                       max="100"
+                       [ngModel]="b.imgWidth || 100"
+                       (ngModelChange)="setMediaWidth(i, $event)">
+              </div>
+
+              <button class="img-continue-btn no-block-drag"
+                      *ngIf="selectedMediaIndex === i"
+                      title="Continue writing below"
+                      (click)="focusNextOrAdd(i, $event)">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1v10M2 7l4 4 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Continue writing
+              </button>
+            </div>
+
+            <!-- ── Link block ── -->
+            <div *ngIf="b.renderType === 'link'"
+                 class="link-block"
+                 (dblclick)="focusNextOrAdd(i)">
+              <svg class="link-icon" viewBox="0 0 20 20" fill="none">
+                <path d="M8 12l4-4M7.5 8H6a4 4 0 000 8h1.5M12.5 8H14a4 4 0 010 8h-1.5"
+                      stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+              <div class="link-text">
+                <input class="link-name-inp"
+                       [(ngModel)]="b.linkViewName"
+                       placeholder="Display name (optional)"
+                       (click)="$event.stopPropagation()"/>
+                <div class="link-url">{{ b.content }}</div>
+                <div class="link-domain">{{ getLinkDomain(b.content || '') }}</div>
+              </div>
+              <button class="link-continue-btn" title="Continue writing below" (click)="focusNextOrAdd(i, $event)">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M5.5 1v9M2 7l3.5 3.5L9 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- ── Video path block ── -->
+            <div *ngIf="b.renderType === 'videoLink'"
+                 class="img-block video-block"
+                 [class.selected]="selectedMediaIndex === i"
+                 [class.media-dragging]="draggingBlockIndex === i"
+                 [style.width]="(b.imgWidth || 100) + '%'"
+                 (click)="selectMedia(i, $event)"
+                 draggable="true"
+                 (dragstart)="onMediaBlockDragStart($event, i)"
+                 (dragend)="onBlockDragEnd()">
+
+              <video draggable="false" [src]="resolveVideoPathSource(b.content || '')" controls preload="metadata"></video>
+
+              <div *ngIf="selectedMediaIndex === i"
+                   class="img-resize-se no-block-drag"
+                   (mousedown)="startResize($event, i)"
+                   title="Drag to resize">
+              </div>
+
+              <div *ngIf="selectedMediaIndex === i" class="img-width-badge">
+                {{ b.imgWidth || 100 }}%
+              </div>
+
+              <div *ngIf="selectedMediaIndex === i" class="media-size-row no-block-drag" (click)="$event.stopPropagation()">
+                <span>Width</span>
+                <input type="range"
+                       min="20"
+                       max="100"
+                       step="1"
+                       [ngModel]="b.imgWidth || 100"
+                       (ngModelChange)="setMediaWidth(i, $event)">
+                <input type="number"
+                       min="20"
+                       max="100"
+                       [ngModel]="b.imgWidth || 100"
+                       (ngModelChange)="setMediaWidth(i, $event)">
+              </div>
+
+              <input class="link-name-inp no-block-drag"
+                     [(ngModel)]="b.content"
+                     placeholder="Video path"
+                     (blur)="validateVideoLinkBlock(i)"
+                     (click)="$event.stopPropagation()"/>
+
+              <button class="img-continue-btn no-block-drag" title="Continue writing below" (click)="focusNextOrAdd(i, $event)">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M5.5 1v9M2 7l3.5 3.5L9 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- ── Video name block ── -->
+            <div *ngIf="b.renderType === 'videoName'"
+                 class="img-block video-block"
+                 [class.selected]="selectedMediaIndex === i"
+                 [class.media-dragging]="draggingBlockIndex === i"
+                 [style.width]="(b.imgWidth || 100) + '%'"
+                 (click)="selectMedia(i, $event)"
+                 draggable="true"
+                 (dragstart)="onMediaBlockDragStart($event, i)"
+                 (dragend)="onBlockDragEnd()">
+
+              <video draggable="false" [src]="resolveVideoNameSource(b.content || '')" controls preload="metadata"></video>
+
+              <div *ngIf="selectedMediaIndex === i"
+                   class="img-resize-se no-block-drag"
+                   (mousedown)="startResize($event, i)"
+                   title="Drag to resize">
+              </div>
+
+              <div *ngIf="selectedMediaIndex === i" class="img-width-badge">
+                {{ b.imgWidth || 100 }}%
+              </div>
+
+              <div *ngIf="selectedMediaIndex === i" class="media-size-row no-block-drag" (click)="$event.stopPropagation()">
+                <span>Width</span>
+                <input type="range"
+                       min="20"
+                       max="100"
+                       step="1"
+                       [ngModel]="b.imgWidth || 100"
+                       (ngModelChange)="setMediaWidth(i, $event)">
+                <input type="number"
+                       min="20"
+                       max="100"
+                       [ngModel]="b.imgWidth || 100"
+                       (ngModelChange)="setMediaWidth(i, $event)">
+              </div>
+
+              <input class="link-name-inp no-block-drag"
+                     [(ngModel)]="b.content"
+                     placeholder="Video name"
+                     (blur)="validateVideoNameBlock(i)"
+                     (click)="$event.stopPropagation()"/>
+
+              <button class="img-continue-btn no-block-drag" title="Continue writing below" (click)="focusNextOrAdd(i, $event)">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M5.5 1v9M2 7l3.5 3.5L9 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+                        <!-- PDF upload block -->
+            <div *ngIf="b.renderType === 'pdf'" class="pdf-block">
+              <div class="pdf-head">
+                <div class="pdf-title">{{ b.file?.name || b.content || 'PDF' }}</div>
+                <div class="pdf-actions">
+                  <button class="pdf-toggle"
+                          type="button"
+                          (click)="b.pdfCollapsed = !b.pdfCollapsed; $event.stopPropagation()">
+                    {{ b.pdfCollapsed ? 'Show PDF' : 'Hide PDF' }}
+                  </button>
+                  <a class="pdf-open"
+                     [href]="b.previewUrl || resolvePdfSource(b.content || '')"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     (click)="$event.stopPropagation()">
+                    Open
+                  </a>
+                </div>
+              </div>
+              <object *ngIf="!b.pdfCollapsed"
+                      class="pdf-viewer"
+                      [data]="getPdfEmbedFromBlock(b)"
+                      type="application/pdf">
+                <a class="pdf-open"
+                   [href]="b.previewUrl || resolvePdfSource(b.content || '')"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                  Open PDF
+                </a>
+              </object>
+              <button class="img-continue-btn" title="Continue writing below" (click)="focusNextOrAdd(i, $event)">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M5.5 1v9M2 7l3.5 3.5L9 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- PDF path block -->
+            <div *ngIf="b.renderType === 'pdfLink'" class="pdf-block">
+              <div class="pdf-head">
+                <input class="link-name-inp"
+                       [(ngModel)]="b.content"
+                       placeholder="PDF path/url"
+                       (click)="$event.stopPropagation()"/>
+                <div class="pdf-actions">
+                  <button class="pdf-toggle"
+                          type="button"
+                          (click)="b.pdfCollapsed = !b.pdfCollapsed; $event.stopPropagation()">
+                    {{ b.pdfCollapsed ? 'Show PDF' : 'Hide PDF' }}
+                  </button>
+                  <a class="pdf-open"
+                     [href]="resolvePdfSource(b.content || '')"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     (click)="$event.stopPropagation()">
+                    Open
+                  </a>
+                </div>
+              </div>
+              <object *ngIf="!b.pdfCollapsed"
+                      class="pdf-viewer"
+                      [data]="getPdfEmbedFromBlock(b)"
+                      type="application/pdf">
+                <a class="pdf-open"
+                   [href]="resolvePdfSource(b.content || '')"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                  Open PDF
+                </a>
+              </object>
+              <button class="img-continue-btn" title="Continue writing below" (click)="focusNextOrAdd(i, $event)">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M5.5 1v9M2 7l3.5 3.5L9 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+<!-- ── Divider ── -->
+            <hr *ngIf="b.renderType === 'divider'" class="divider-block">
+
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Drop indicator at end -->
+        <div class="drop-zone"
+             [class.show]="dropTargetIndex === articleModel.blocks.length || blockDropTargetIndex === articleModel.blocks.length"
+             (dragover)="onBlockDragOverZone($event, articleModel.blocks.length)"
+             (drop)="onBlockDropZone($event, articleModel.blocks.length)">
+          <div class="drop-line"></div>
+        </div>
+
+        <!-- Quick-add bar -->
+        <div class="add-bar" [class.hide-bar]="articleModel.blocks.length > 0">
+          <button class="add-type-btn" (click)="addBlock('text')">+ Paragraph</button>
+          <button class="add-type-btn" (click)="addBlock('list')">+ List</button>
+          <button class="add-type-btn" (click)="triggerImagePick()">+ Image</button>
+          <button class="add-type-btn" (click)="triggerVideoPick()">+ Video</button>
+          <button class="add-type-btn" (click)="triggerPdfPick()">+ PDF</button>
+          <button class="add-type-btn" (click)="promptVideoLinkPath()">+ Video path</button>
+          <button class="add-type-btn" (click)="promptVideoName()">+ Video name</button>
+          <button class="add-type-btn" (click)="promptPdfPath()">+ PDF path</button>
+          <button class="add-type-btn" (click)="promptLink()">+ Link</button>
+        </div>
+
+      </div>
+      <!-- end .content-area -->
+
+      <!-- Shortcuts hint -->
+      <div class="availability-box">
+        <div class="availability-title">Availabilities</div>
+        <div class="availability-grid">
+          <span class="availability-item">Text</span>
+          <span class="availability-item">List =&gt; <kbd>/List</kbd></span>
+          <span class="availability-item">Image =&gt; Drag Drop</span>
+          <span class="availability-item">Link =&gt; Copy Paste</span>
+          <span class="availability-item">Video Upload =&gt; Drag Drop</span>
+          <span class="availability-item">Video Name =&gt; <kbd>/VideoName</kbd></span>
+          <span class="availability-item">Video Path =&gt; <kbd>/VideoPath</kbd></span>
+          <span class="availability-item">PDF Upload =&gt; Drag Drop / Button</span>
+          <span class="availability-item">PDF Path =&gt; <kbd>/PDF</kbd></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" [class.hide]="!toastMessage">{{ toastMessage }}</div>

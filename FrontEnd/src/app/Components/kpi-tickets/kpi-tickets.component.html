@@ -1,0 +1,297 @@
+<div class="kpi-page">
+  <div class="kpi-header">
+    <div class="kpi-title-block">
+      <h1 class="kpi-title">KPI Tasks</h1>
+      <p class="kpi-subtitle">Paginated KPI rows (page size: 50)</p>
+    </div>
+  </div>
+
+  <div class="kpi-main-tabs">
+    <button type="button" class="kpi-main-tab" [class.kpi-main-tab-active]="activeMainTab() === 'tickets'" (click)="switchMainTab('tickets')">Ticket Tasks</button>
+    <button type="button" class="kpi-main-tab" [class.kpi-main-tab-active]="activeMainTab() === 'tasks'" (click)="switchMainTab('tasks')">Project Tasks</button>
+    <button type="button" class="kpi-main-tab" [class.kpi-main-tab-active]="activeMainTab() === 'both'" (click)="switchMainTab('both')">Both</button>
+    <button
+      *ngIf="isAdminUser"
+      type="button"
+      class="kpi-main-tab kpi-main-tab-old"
+      [class.kpi-main-tab-active]="activeMainTab() === 'oldTasks'"
+      (click)="switchMainTab('oldTasks')">
+      Old tasks (Excel)
+    </button>
+  </div>
+
+  <div class="kpi-filters" *ngIf="activeMainTab() !== 'oldTasks'">
+    <div class="kpi-filter-group">
+      <label class="kpi-filter-label">System</label>
+      <div class="kpi-multi-dropdown" (click)="$event.stopPropagation()">
+        <button type="button" class="kpi-multi-trigger" (click)="toggleSystemDropdown($event)">
+          <span class="kpi-multi-label">{{ systemSelectionLabel() }}</span>
+          <span class="kpi-multi-caret">▾</span>
+        </button>
+        <div class="kpi-multi-panel" *ngIf="systemDropdownOpen()">
+          <button type="button" class="kpi-multi-item" *ngFor="let s of systems" (click)="toggleSystemSelection(s.id, $event)">
+            <input type="checkbox" [checked]="isSystemSelected(s.id)" />
+            <span>{{ s.name }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi-filter-group">
+      <label class="kpi-filter-label">User</label>
+      <div class="kpi-multi-dropdown" (click)="$event.stopPropagation()">
+        <button type="button" class="kpi-multi-trigger" (click)="toggleUserDropdown($event)">
+          <span class="kpi-multi-label">{{ userSelectionLabel() }}</span>
+          <span class="kpi-multi-caret">▾</span>
+        </button>
+        <div class="kpi-multi-panel" *ngIf="userDropdownOpen()">
+          <button type="button" class="kpi-multi-item" *ngFor="let u of users" (click)="toggleUserSelection(u.id, $event)">
+            <input type="checkbox" [checked]="isUserSelected(u.id)" />
+            <span>{{ u.name }}</span>
+          </button>
+          <div class="kpi-multi-empty" *ngIf="users.length === 0">No agents available</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi-filter-group">
+      <label class="kpi-filter-label">KPI</label>
+      <div class="kpi-has-kpi-buttons">
+        <button type="button" class="kpi-has-kpi-btn" [class.kpi-has-kpi-btn-active]="hasKpiFilter() === 'all'" (click)="hasKpiFilter.set('all'); applyFilters()">All</button>
+        <button type="button" class="kpi-has-kpi-btn" [class.kpi-has-kpi-btn-active]="hasKpiFilter() === 'with'" (click)="hasKpiFilter.set('with'); applyFilters()">With KPI</button>
+        <button type="button" class="kpi-has-kpi-btn" [class.kpi-has-kpi-btn-active]="hasKpiFilter() === 'without'" (click)="hasKpiFilter.set('without'); applyFilters()">Without KPI</button>
+      </div>
+    </div>
+
+    <div class="kpi-filter-group kpi-filter-dates">
+      <label class="kpi-filter-label">Date Range</label>
+      <input
+        class="kpi-date-input"
+        type="date"
+        [ngModel]="fromDate()"
+        (ngModelChange)="fromDate.set($event); applyFilters()"
+        placeholder="From" />
+      <input
+        class="kpi-date-input"
+        type="date"
+        [ngModel]="toDate()"
+        (ngModelChange)="toDate.set($event); applyFilters()"
+        placeholder="To" />
+    </div>
+
+    <button *ngIf="hasActiveFilters" type="button" class="kpi-clear-btn" (click)="clearFilters()">Clear filters</button>
+    <div class="kpi-count" *ngIf="!isLoading()"><strong>{{ totalRecords() }}</strong> result{{ totalRecords() !== 1 ? 's' : '' }}</div>
+  </div>
+
+  <app-kpi-old-tasks *ngIf="activeMainTab() === 'oldTasks' && isAdminUser" />
+
+  <div class="kpi-card" *ngIf="activeMainTab() !== 'oldTasks'">
+    <div *ngIf="isLoading()" class="kpi-loading"><span class="kpi-spinner"></span>Loading…</div>
+    <div *ngIf="loadError() && !isLoading()" class="kpi-banner kpi-banner-error">{{ loadError() }}</div>
+
+    <div class="kpi-table-wrap" *ngIf="!isLoading() && !loadError()">
+      <table class="kpi-table" *ngIf="activeMainTab() === 'tickets'">
+        <thead>
+          <tr>
+            <th>Ticket #</th>
+            <th>Ticket Subject</th>
+            <th>Company</th>
+            <th>Issue Type</th>
+            <th>Issue Status</th>
+            <th>Submodule</th>
+            <th>Module</th>
+            <th>System</th>
+            <th>Priority</th>
+            <th>Assigned To</th>
+            <th>Raised By</th>
+            <th>Date</th>
+            <th>KPI</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="kpi-row" *ngFor="let row of ticketsRows()">
+            <td class="kpi-cell-id">{{ ticketNumericLabel(row) }}</td>
+            <td>{{ ticketSubjectLabel(row) }}</td>
+            <td>{{ ticketCompanyLabel(row) }}</td>
+            <td>{{ ticketIssueTypeLabel(row) }}</td>
+            <td>{{ ticketIssueStatusLabel(row) }}</td>
+            <td>{{ ticketRelatedSubModuleLabel(row) }}</td>
+            <td>{{ ticketRelatedModuleLabel(row) }}</td>
+            <td>{{ ticketRelatedSystemLabel(row) }}</td>
+            <td>{{ row.issuePriority || '—' }}</td>
+            <td>{{ ticketUserLabel(row) }}</td>
+            <td>{{ ticketRaisedByLabel(row) }}</td>
+            <td>{{ row.date | date:'mediumDate' }}</td>
+            <td>
+              <span class="kpi-linked-badge" *ngIf="hasKpi(row.kpi); else noTicketKpi">{{ kpiLabel(row.kpi) }}</span>
+              <ng-template #noTicketKpi><span class="kpi-unlinked">No KPI</span></ng-template>
+            </td>
+            <td>
+              <div class="kpi-row-actions">
+                <button type="button" class="kpi-btn-view" (click)="viewTicket(row.ticketId)">View Ticket</button>
+                <button
+                  type="button"
+                  class="kpi-btn-link"
+                  *ngIf="!hasKpi(row.kpi)"
+                  (click)="openCreateKpiForTicket(row)">
+                  Create KPI
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="ticketsRows().length === 0"><td colspan="14" class="kpi-empty">No rows found.</td></tr>
+        </tbody>
+      </table>
+
+      <table class="kpi-table" *ngIf="activeMainTab() === 'tasks'">
+        <thead>
+          <tr>
+            <th>Task ID</th>
+            <th>Ticket Subject / Description</th>
+            <th>Assigned To</th>
+            <th>Date</th>
+            <th>KPI</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="kpi-row" *ngFor="let row of tasksRows()">
+            <td class="kpi-cell-id">{{ row.projectTaskId }}</td>
+            <td>{{ row.description || '—' }}</td>
+            <td>{{ row.userName || row.userId || '—' }}</td>
+            <td>{{ row.date | date:'mediumDate' }}</td>
+            <td>
+              <span class="kpi-linked-badge" *ngIf="hasKpi(row.kpi); else noTaskKpi">{{ kpiLabel(row.kpi) }}</span>
+              <ng-template #noTaskKpi><span class="kpi-unlinked">No KPI</span></ng-template>
+            </td>
+            <td>
+              <div class="kpi-row-actions">
+                <button type="button" class="kpi-btn-view" (click)="viewTask(row.projectTaskId)">View Task</button>
+                <button
+                  type="button"
+                  class="kpi-btn-link"
+                  *ngIf="!hasKpi(row.kpi)"
+                  (click)="openCreateKpiForTask(row)">
+                  Create KPI
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="tasksRows().length === 0"><td colspan="6" class="kpi-empty">No rows found.</td></tr>
+        </tbody>
+      </table>
+
+      <table class="kpi-table" *ngIf="activeMainTab() === 'both'">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Reference</th>
+            <th>Ticket Subject / Description</th>
+            <th>Raised By</th>
+            <th>Assigned To</th>
+            <th>Date</th>
+            <th>KPI</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="kpi-row" *ngFor="let item of combinedRows()">
+            <td>
+              <span class="kpi-type-chip">{{ item.kind === 'ticket' ? 'Ticket' : 'Task' }}</span>
+            </td>
+            <td class="kpi-cell-id">{{ item.kind === 'ticket' ? ticketNumericLabel(item.row) : item.row.projectTaskId }}</td>
+            <td>{{ item.kind === 'ticket' ? ticketSubjectLabel(item.row) : (item.row.description || '—') }}</td>
+            <td>{{ item.kind === 'ticket' ? ticketRaisedByLabel(item.row) : '—' }}</td>
+            <td>{{ item.kind === 'ticket' ? ticketUserLabel(item.row) : (item.row.userName || item.row.userId || '—') }}</td>
+            <td>{{ item.row.date | date:'mediumDate' }}</td>
+            <td>
+              <span class="kpi-linked-badge" *ngIf="hasKpi(item.row.kpi); else noCombinedKpi">{{ kpiLabel(item.row.kpi) }}</span>
+              <ng-template #noCombinedKpi><span class="kpi-unlinked">No KPI</span></ng-template>
+            </td>
+            <td>
+              <div class="kpi-row-actions">
+                <button
+                  type="button"
+                  class="kpi-btn-view"
+                  *ngIf="item.kind === 'ticket'"
+                  (click)="viewTicket(item.row.ticketId)">
+                  View Ticket
+                </button>
+                <button
+                  type="button"
+                  class="kpi-btn-view"
+                  *ngIf="item.kind === 'task'"
+                  (click)="viewTask(item.row.projectTaskId)">
+                  View Task
+                </button>
+                <button
+                  type="button"
+                  class="kpi-btn-link"
+                  *ngIf="item.kind === 'ticket' && !hasKpi(item.row.kpi)"
+                  (click)="openCreateKpiForTicket(item.row)">
+                  Create KPI
+                </button>
+                <button
+                  type="button"
+                  class="kpi-btn-link"
+                  *ngIf="item.kind === 'task' && !hasKpi(item.row.kpi)"
+                  (click)="openCreateKpiForTask(item.row)">
+                  Create KPI
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="combinedRows().length === 0"><td colspan="8" class="kpi-empty">No rows found.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="kpi-pagination" *ngIf="!isLoading() && !loadError() && totalRecords() > 0">
+      <span class="kpi-page-info">Page {{ currentPage() }} of {{ totalPages }} <span class="kpi-muted">· {{ totalRecords() }} total</span></span>
+      <div class="kpi-page-actions">
+        <button type="button" class="kpi-page-btn" [disabled]="currentPage() <= 1" (click)="prevPage()">← Previous</button>
+        <button type="button" class="kpi-page-btn" [disabled]="currentPage() >= totalPages" (click)="nextPage()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="kpi-modal-overlay" *ngIf="createKpiModal() as target" (click)="closeCreateKpiModal()">
+  <div class="kpi-modal" (click)="$event.stopPropagation()">
+    <div class="kpi-modal-header">
+      <div class="kpi-modal-title">Create KPI</div>
+      <button class="kpi-modal-close" (click)="closeCreateKpiModal()">×</button>
+    </div>
+    <div class="kpi-modal-body">
+      <div class="kpi-modal-ticket-ref">
+        <span class="kpi-modal-ticket-id">{{ target.kind === 'ticket' ? 'Ticket task' : 'Project subtask' }}: {{ target.id }}</span>
+        <span class="kpi-modal-ticket-sub">{{ target.label }}</span>
+      </div>
+
+      <div class="kpi-filter-group">
+        <label class="kpi-filter-label">Use fixed KPI?</label>
+        <div class="kpi-has-kpi-buttons">
+          <button type="button" class="kpi-has-kpi-btn" [class.kpi-has-kpi-btn-active]="!useFixedKpi()" (click)="useFixedKpi.set(false)">No</button>
+          <button type="button" class="kpi-has-kpi-btn" [class.kpi-has-kpi-btn-active]="useFixedKpi()" (click)="useFixedKpi.set(true)">Yes</button>
+        </div>
+      </div>
+
+      <div class="kpi-filter-group" *ngIf="useFixedKpi()">
+        <label class="kpi-filter-label">Fixed KPI</label>
+        <select class="kpi-filter-select" [ngModel]="selectedFixedKpiId()" (ngModelChange)="selectedFixedKpiId.set($event)">
+          <option value="">Select fixed KPI</option>
+          <option *ngFor="let k of fixedKPIs" [value]="k.id">{{ k.name }}</option>
+        </select>
+      </div>
+
+      <div class="kpi-modal-error" *ngIf="createKpiError()">{{ createKpiError() }}</div>
+    </div>
+    <div class="kpi-modal-footer">
+      <button class="kpi-btn kpi-btn-primary" (click)="submitCreateKpi()" [disabled]="creatingKpi()">
+        {{ creatingKpi() ? 'Creating…' : (useFixedKpi() ? 'Create with fixed KPI' : 'Create KPI now') }}
+      </button>
+      <button class="kpi-btn kpi-btn-ghost" (click)="closeCreateKpiModal()">Cancel</button>
+    </div>
+  </div>
+</div>

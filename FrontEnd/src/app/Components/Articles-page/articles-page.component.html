@@ -1,0 +1,65 @@
+<div class="list-page">
+
+  <!-- ─── Header ─── -->
+  <div class="list-header">
+    <div class="list-header-left">
+      <span class="list-title">Articles</span>
+      <span class="list-count">{{ articles.length }}</span>
+    </div>
+    <button *ngIf="isAnySystemAgent" class="new-btn" (click)="newArticle()">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      New Article
+    </button>
+  </div>
+
+  <!-- ─── Loading ─── -->
+  <div *ngIf="isLoading" class="list-loading">
+    <div class="skel skel-card" *ngFor="let i of [1,2,3,4,5]"></div>
+  </div>
+
+  <!-- ─── Empty ─── -->
+  <div *ngIf="!isLoading && articles.length === 0" class="list-empty">
+    <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+      <rect x="10" y="8" width="32" height="36" rx="4" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <path d="M18 18h16M18 24h16M18 30h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <div class="empty-title">No articles yet</div>
+    <div class="empty-sub" *ngIf="isAnySystemAgent">You can create the first one.</div>
+    <button *ngIf="isAnySystemAgent" class="new-btn-empty" (click)="newArticle()">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      New Article
+    </button>
+  </div>
+
+  <!-- ─── Article grid ─── -->
+  <div *ngIf="!isLoading && articles.length > 0" class="list-grid">
+    <a *ngFor="let a of articles"
+       class="art-card"
+       [routerLink]="['/articles', a.id]">
+
+      <div class="art-card-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="3" y="2" width="14" height="16" rx="2" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M6 6.5h8M6 9.5h8M6 12.5h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <div class="art-card-body">
+        <div class="art-card-title">{{ a.title || 'Untitled' }}</div>
+        <div class="art-card-sys" *ngIf="getSystemName($any(a).systemId)">
+          {{ getSystemName($any(a).systemId) }}
+        </div>
+      </div>
+
+      <svg class="art-card-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+
+    </a>
+  </div>
+
+</div>

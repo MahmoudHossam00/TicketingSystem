@@ -1,0 +1,241 @@
+<div class="proj-page">
+
+  <header class="proj-header">
+    <div class="proj-title-block">
+      <h1 class="proj-title">Projects</h1>
+      <p class="proj-subtitle">Create and browse projects (details view coming later)</p>
+    </div>
+    <button type="button" class="proj-btn proj-btn-primary" (click)="openCreateModal()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      New project
+    </button>
+  </header>
+
+  <p class="proj-inline-error" *ngIf="toggleClosedError()">{{ toggleClosedError() }}</p>
+
+  <div class="proj-filters">
+    <div class="proj-filter-group">
+      <label class="proj-filter-label">System</label>
+      <select class="proj-filter-select"
+        [ngModel]="filterSystemId()"
+        (ngModelChange)="filterSystemId.set($event); applyFilters()">
+        <option value="">All systems</option>
+        <option *ngFor="let s of systems()" [value]="s.id">{{ s.name }}</option>
+      </select>
+    </div>
+    <div class="proj-filter-group">
+      <label class="proj-filter-label">Status</label>
+      <select class="proj-filter-select"
+        [ngModel]="filterStatusId()"
+        (ngModelChange)="filterStatusId.set($event); applyFilters()">
+        <option value="">All statuses</option>
+        <option *ngFor="let st of issueStatuses()" [value]="st.id">{{ st.name }}</option>
+      </select>
+    </div>
+    <div class="proj-filter-group">
+      <label class="proj-filter-label">Scope</label>
+      <button type="button" class="proj-scope-toggle" [class.proj-scope-on]="onlyMyProjects()"
+        (click)="toggleMyProjects()">
+        <span class="proj-scope-thumb"></span>
+        <span class="proj-scope-text">{{ onlyMyProjects() ? 'My projects' : 'All projects' }}</span>
+      </button>
+    </div>
+    <div class="proj-count" *ngIf="!isLoading() && pageState()">
+      <strong>{{ paginationTotalCount }}</strong> project{{ paginationTotalCount !== 1 ? 's' : '' }} total
+    </div>
+  </div>
+
+  <section
+    #projPaginationTop
+    class="proj-pagination"
+    *ngIf="!listError() && hasMultiplePages"
+    aria-label="Project list pages">
+    <app-pagination
+      [totalCount]="paginationTotalCount"
+      [pageSize]="pageState()?.pageSize ?? 10"
+      [currentPage]="currentPage()"
+      [disabled]="isLoading()"
+      (pageChange)="onPageChange($event)"
+    />
+  </section>
+
+  <div class="proj-loading" *ngIf="isLoading()">
+    <span class="proj-spinner"></span>
+    Loading projects…
+  </div>
+
+  <div class="proj-error" *ngIf="listError() && !isLoading()">{{ listError() }}</div>
+
+  <div class="proj-empty" *ngIf="!isLoading() && !listError() && !(pageState()?.data?.length)">
+    <p>No projects match these filters.</p>
+    <button type="button" class="proj-btn proj-btn-outline" (click)="openCreateModal()">Create a project</button>
+  </div>
+
+  <div class="proj-grid" *ngIf="!isLoading() && !listError() && (pageState()?.data?.length ?? 0) > 0">
+    <article class="proj-card" *ngFor="let p of (pageState()?.data ?? [])" [routerLink]="['/projectdetails', p.id]" style="cursor:pointer">
+      <div class="proj-card-top">
+        <div class="proj-card-badges">
+          <span class="proj-status-pill"
+            [style.background]="statusColor(p.currentStatusId) + '22'"
+            [style.color]="statusColor(p.currentStatusId)">
+            <span class="proj-dot" [style.background]="statusColor(p.currentStatusId)"></span>
+            {{ statusName(p.currentStatusId) }}
+          </span>
+          <span class="proj-prio" [ngClass]="'proj-prio-' + (p.priority != null ? p.priority : 'na')">
+            {{ priorityLabel(p.priority) }}
+          </span>
+          <span class="proj-closed" *ngIf="p.isClosed" aria-label="Project closed">Closed</span>
+          <span class="proj-open" *ngIf="!p.isClosed" aria-label="Project open">Open</span>
+        </div>
+        <div class="proj-card-actions">
+          <button type="button" class="proj-icon-btn proj-icon-btn-close"
+            [title]="p.isClosed ? 'Reopen project' : 'Close project'"
+            [disabled]="togglingClosedId() === p.id"
+            (click)="toggleProjectClosed(p, $event)">
+            <svg *ngIf="!p.isClosed" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect x="3" y="7" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <svg *ngIf="p.isClosed" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect x="3" y="7" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 7V5a3 3 0 015.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button type="button" class="proj-icon-btn" title="Delete project"
+            (click)="openDeleteModal(p); $event.stopPropagation(); $event.preventDefault()">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5.5 4V2.5h5V4M6 7v5M10 7v5M3 4l1 9h8l1-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <p class="proj-desc">{{ p.description || '—' }}</p>
+      <dl class="proj-meta">
+        <div class="proj-meta-row">
+          <dt>Submodule</dt>
+          <dd>{{ subModuleName(p.relatedSubModuleId) }}</dd>
+        </div>
+        <div class="proj-meta-row">
+          <dt>Module</dt>
+          <dd>{{ moduleNameFromSubModule(p.relatedSubModuleId) }}</dd>
+        </div>
+        <div class="proj-meta-row">
+          <dt>System</dt>
+          <dd>{{ systemNameFromSubModule(p.relatedSubModuleId) }}</dd>
+        </div>
+        <div class="proj-meta-row">
+          <dt>Owner</dt>
+          <dd>{{ p.userName || p.userId || '—' }}</dd>
+        </div>
+        <div class="proj-meta-row">
+          <dt>Dates</dt>
+          <dd>{{ p.startDate | date:'mediumDate' }} → {{ p.endDate | date:'mediumDate' }}</dd>
+        </div>
+        <div class="proj-meta-row">
+          <dt>ID</dt>
+          <dd class="proj-id">{{ p.numericId ?? '—' }}</dd>
+        </div>
+        <div class="proj-meta-row">
+          <dt>Serial Number</dt>
+          <dd class="proj-id">{{ p.id }}</dd>
+        </div>
+      </dl>
+    </article>
+  </div>
+
+  <!-- Create modal -->
+  <div class="proj-modal-overlay" *ngIf="showCreateModal()" (click)="closeCreateModal()">
+    <div class="proj-modal proj-modal-wide" (click)="$event.stopPropagation()">
+      <div class="proj-modal-head">
+        <h2 class="proj-modal-title">New project</h2>
+        <button type="button" class="proj-modal-close" (click)="closeCreateModal()" aria-label="Close">×</button>
+      </div>
+      <div class="proj-modal-body">
+        <div class="proj-field">
+          <label class="proj-label">Description <span class="proj-req">*</span></label>
+          <textarea class="proj-input proj-textarea" rows="4" [(ngModel)]="createDescription"
+            placeholder="What is this project about?"></textarea>
+        </div>
+        <div class="proj-field-row">
+          <div class="proj-field">
+            <label class="proj-label">Start date <span class="proj-req">*</span></label>
+            <input class="proj-input" type="date" [(ngModel)]="createStartDate" />
+          </div>
+          <div class="proj-field">
+            <label class="proj-label">End date <span class="proj-req">*</span></label>
+            <input class="proj-input" type="date" [(ngModel)]="createEndDate" />
+          </div>
+        </div>
+        <div class="proj-field">
+          <label class="proj-label">Related System <span class="proj-req">*</span></label>
+          <select class="proj-input" [ngModel]="createSystemId" (ngModelChange)="onCreateSystemChange($event)">
+            <option value="" disabled>Select system…</option>
+            <option *ngFor="let s of systems()" [value]="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <div class="proj-field" *ngIf="createSystemId">
+          <label class="proj-label">Related Module <span class="proj-req">*</span></label>
+          <select class="proj-input" [ngModel]="createModuleId" (ngModelChange)="onCreateModuleChange($event)">
+            <option value="" disabled>Select module…</option>
+            <option *ngFor="let m of createModules()" [value]="m.id">{{ m.name }}</option>
+          </select>
+        </div>
+        <div class="proj-field" *ngIf="createModuleId">
+          <label class="proj-label">Related Sub Module <span class="proj-req">*</span></label>
+          <select class="proj-input" [(ngModel)]="createRelatedSubModuleId">
+            <option value="" disabled>Select sub module…</option>
+            <option *ngFor="let sm of createSubModules()" [value]="sm.id">{{ sm.name }}</option>
+          </select>
+        </div>
+        <div class="proj-field-row">
+          <div class="proj-field">
+            <label class="proj-label">Priority</label>
+            <select class="proj-input" [(ngModel)]="createPrioritySelect">
+              <option value="">— Optional —</option>
+              <option *ngFor="let n of [0,1,2,3]" [value]="n">{{ IssuePriority[n] }}</option>
+            </select>
+          </div>
+          <div class="proj-field">
+            <label class="proj-label">Initial status</label>
+            <select class="proj-input" [(ngModel)]="createStatusId">
+              <option value="">— Optional —</option>
+              <option *ngFor="let st of issueStatuses()" [value]="st.id">{{ st.name }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="proj-field">
+          <label class="proj-label">Attachments</label>
+          <input type="file" multiple (change)="onCreateFilesChange($event)" class="proj-file-input" />
+          <p class="proj-hint" *ngIf="createFiles.length">{{ createFiles.length }} file(s) selected</p>
+        </div>
+        <div class="proj-form-error" *ngIf="createError()">{{ createError() }}</div>
+      </div>
+      <div class="proj-modal-foot">
+        <button type="button" class="proj-btn proj-btn-ghost" (click)="closeCreateModal()">Cancel</button>
+        <button type="button" class="proj-btn proj-btn-primary" (click)="submitCreate()"
+          [disabled]="savingCreate()">{{ savingCreate() ? 'Creating…' : 'Create project' }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete confirm -->
+  <div class="proj-modal-overlay" *ngIf="showDeleteModal()" (click)="closeDeleteModal()">
+    <div class="proj-modal" (click)="$event.stopPropagation()">
+      <div class="proj-modal-head">
+        <h2 class="proj-modal-title">Delete project?</h2>
+        <button type="button" class="proj-modal-close" (click)="closeDeleteModal()" aria-label="Close">×</button>
+      </div>
+      <div class="proj-modal-body">
+        <p class="proj-delete-text" *ngIf="projectToDelete as d">
+          This cannot be undone. Project:
+          <strong>{{ d.description | slice:0:80 }}{{ d.description.length > 80 ? '…' : '' }}</strong>
+        </p>
+        <div class="proj-form-error" *ngIf="deleteError()">{{ deleteError() }}</div>
+      </div>
+      <div class="proj-modal-foot">
+        <button type="button" class="proj-btn proj-btn-ghost" (click)="closeDeleteModal()">Cancel</button>
+        <button type="button" class="proj-btn proj-btn-danger" (click)="confirmDelete()"
+          [disabled]="deleting()">{{ deleting() ? 'Deleting…' : 'Delete' }}</button>
+      </div>
+    </div>
+  </div>
+
+</div>

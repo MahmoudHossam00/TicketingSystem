@@ -1,0 +1,620 @@
+<div class="mg-shell">
+
+  <!-- ══════════════════════════════════════════════════════════
+       LEFT — Conversation list
+  ══════════════════════════════════════════════════════════════ -->
+  <aside class="mg-sidebar">
+
+    <div class="mg-header">
+      <div class="mg-header-left">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span class="mg-title">Messages</span>
+      </div>
+      <span class="mg-badge" *ngIf="sidebarUnreadCount > 0">{{ sidebarUnreadCount }}</span>
+    </div>
+
+    <div class="mg-tabs" role="tablist" aria-label="Message type">
+      <button
+        type="button"
+        role="tab"
+        class="mg-tab"
+        [class.mg-tab-active]="activeTab() === 'tickets'"
+        [attr.aria-selected]="activeTab() === 'tickets'"
+        (click)="setTab('tickets')"
+      >
+        Tickets
+        <span class="mg-tab-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="mg-tab"
+        [class.mg-tab-active]="activeTab() === 'direct'"
+        [attr.aria-selected]="activeTab() === 'direct'"
+        (click)="setTab('direct')"
+      >
+        Direct
+        <span class="mg-tab-badge" *ngIf="unreadUserCount > 0">{{ unreadUserCount }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="mg-tab"
+        *ngIf="isAdminOrModerator()"
+        [class.mg-tab-active]="activeTab() === 'tasks'"
+        [attr.aria-selected]="activeTab() === 'tasks'"
+        (click)="setTab('tasks')"
+      >
+        Tasks
+        <span class="mg-tab-badge" *ngIf="unreadTaskCount > 0">{{ unreadTaskCount }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="mg-tab"
+        *ngIf="isAdminOrModerator()"
+        [class.mg-tab-active]="activeTab() === 'projects'"
+        [attr.aria-selected]="activeTab() === 'projects'"
+        (click)="setTab('projects')"
+      >
+        Projects
+        <span class="mg-tab-badge" *ngIf="unreadProjectCount > 0">{{ unreadProjectCount }}</span>
+      </button>
+    </div>
+
+    <!-- ——— Tickets ——— -->
+    <ng-container *ngIf="activeTab() === 'tickets'">
+
+      <div class="mg-state" *ngIf="isLoading()">
+        <div class="mg-spinner"></div>
+        <span>Loading…</span>
+      </div>
+
+      <div class="mg-state mg-state-error" *ngIf="error()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        {{ error() }}
+      </div>
+
+      <div class="mg-state" *ngIf="!isLoading() && !error() && conversations.length === 0">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#c7cdd6" stroke-width="1.4">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <p>No ticket conversations yet</p>
+      </div>
+
+      <ul class="mg-list" *ngIf="!isLoading() && !error() && conversations.length > 0">
+        <li
+          *ngFor="let conv of conversations"
+          class="mg-item"
+          [class.mg-item-unread]="!conv.isSeen && !isFromMe(conv)"
+          [class.mg-item-active]="selected()?.ticketId === conv.ticketId"
+          (click)="select(conv)"
+        >
+          <div class="mg-avatar">
+            <img *ngIf="conv.contactedUserPicture"
+                 [src]="getpicurl(conv.contactedUserPicture!)"
+                 [alt]="conv.contactedUserName"
+                 class="mg-avatar-img" />
+            <span *ngIf="!conv.contactedUserPicture" class="mg-avatar-initial">
+              {{ initial(conv.contactedUserName) }}
+            </span>
+            <span class="mg-unseen-dot" *ngIf="!conv.isSeen && !isFromMe(conv)"></span>
+          </div>
+
+          <div class="mg-content">
+            <div class="mg-row">
+              <span class="mg-name">{{ conv.contactedUserName }}</span>
+              <span class="mg-time">{{ formatTime(conv.lastDate) }}</span>
+            </div>
+            <div class="mg-row mg-row-sub">
+              <span class="mg-ticket-id">#{{ conv.ticketId.slice(0, 8) }}</span>
+            </div>
+            <div class="mg-row">
+              <span class="mg-preview">
+                <span class="mg-direction mg-direction-me"  *ngIf="isFromMe(conv)">You: </span>
+                <span class="mg-direction mg-direction-them" *ngIf="!isFromMe(conv)">{{ conv.contactedUserName.split(' ')[0] }}: </span>
+                {{ preview(conv.lastText) }}
+              </span>
+              <span class="mg-unread-pip" *ngIf="!conv.isSeen && !isFromMe(conv)"></span>
+            </div>
+          </div>
+        </li>
+      </ul>
+
+    </ng-container>
+
+    <!-- ——— Direct (user) ——— -->
+    <div class="mg-direct-wrap" *ngIf="activeTab() === 'direct'">
+
+      <div class="mg-direct-actions">
+        <button type="button" class="mg-new-dm-btn" (click)="openPickUserModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          New direct message
+        </button>
+      </div>
+
+      <div class="mg-state" *ngIf="isLoadingUsers()">
+        <div class="mg-spinner"></div>
+        <span>Loading…</span>
+      </div>
+
+      <div class="mg-state mg-state-error" *ngIf="errorUsers()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        {{ errorUsers() }}
+      </div>
+
+      <div class="mg-state" *ngIf="!isLoadingUsers() && !errorUsers() && userConversations.length === 0">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#c7cdd6" stroke-width="1.4">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <p>No direct messages yet</p>
+        <p class="mg-direct-hint">Use “New direct message” to find a colleague.</p>
+      </div>
+
+      <ul class="mg-list" *ngIf="!isLoadingUsers() && !errorUsers() && userConversations.length > 0">
+        <li
+          *ngFor="let conv of userConversations"
+          class="mg-item"
+          [class.mg-item-unread]="!conv.isSeen && !isFromMeUser(conv)"
+          [class.mg-item-active]="selectedUser()?.otherUserId === conv.otherUserId"
+          (click)="selectUser(conv)"
+        >
+          <div class="mg-avatar">
+            <img *ngIf="conv.contactedUserPicture"
+                 [src]="getpicurl(conv.contactedUserPicture!)"
+                 [alt]="conv.contactedUserName"
+                 class="mg-avatar-img" />
+            <span *ngIf="!conv.contactedUserPicture" class="mg-avatar-initial">
+              {{ initial(conv.contactedUserName) }}
+            </span>
+            <span class="mg-unseen-dot" *ngIf="!conv.isSeen && !isFromMeUser(conv)"></span>
+          </div>
+
+          <div class="mg-content">
+            <div class="mg-row">
+              <span class="mg-name">{{ conv.contactedUserName }}</span>
+              <span class="mg-time">{{ formatTime(conv.lastDate) }}</span>
+            </div>
+            <div class="mg-row mg-row-sub">
+              <span class="mg-ticket-id">Direct</span>
+            </div>
+            <div class="mg-row">
+              <span class="mg-preview">
+                <span class="mg-direction mg-direction-me"  *ngIf="isFromMeUser(conv)">You: </span>
+                <span class="mg-direction mg-direction-them" *ngIf="!isFromMeUser(conv)">{{ conv.contactedUserName.split(' ')[0] }}: </span>
+                {{ preview(conv.lastText) }}
+              </span>
+              <span class="mg-unread-pip" *ngIf="!conv.isSeen && !isFromMeUser(conv)"></span>
+            </div>
+          </div>
+        </li>
+      </ul>
+
+    </div>
+
+    <!-- ——— Tasks ——— -->
+    <ng-container *ngIf="activeTab() === 'tasks'">
+
+      <div class="mg-state" *ngIf="isLoadingTasks()">
+        <div class="mg-spinner"></div>
+        <span>Loading…</span>
+      </div>
+
+      <div class="mg-state mg-state-error" *ngIf="errorTasks()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        {{ errorTasks() }}
+      </div>
+
+      <div class="mg-state" *ngIf="!isLoadingTasks() && !errorTasks() && taskConversations.length === 0">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#c7cdd6" stroke-width="1.4">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <p>No task conversations yet</p>
+      </div>
+
+      <ul class="mg-list" *ngIf="!isLoadingTasks() && !errorTasks() && taskConversations.length > 0">
+        <li
+          *ngFor="let conv of taskConversations"
+          class="mg-item"
+          [class.mg-item-unread]="!conv.isSeen && !isFromMeTask(conv)"
+          [class.mg-item-active]="selectedTask()?.taskId === conv.taskId"
+          (click)="selectTask(conv)"
+        >
+          <div class="mg-avatar">
+            <img *ngIf="conv.contactedUserPicture"
+                 [src]="getpicurl(conv.contactedUserPicture!)"
+                 [alt]="conv.contactedUserName"
+                 class="mg-avatar-img" />
+            <span *ngIf="!conv.contactedUserPicture" class="mg-avatar-initial">
+              {{ initial(conv.contactedUserName) }}
+            </span>
+            <span class="mg-unseen-dot" *ngIf="!conv.isSeen && !isFromMeTask(conv)"></span>
+          </div>
+
+          <div class="mg-content">
+            <div class="mg-row">
+              <span class="mg-name">{{ conv.contactedUserName }}</span>
+              <span class="mg-time">{{ formatTime(conv.lastDate) }}</span>
+            </div>
+            <div class="mg-row mg-row-sub">
+              <span class="mg-ticket-id">Task #{{ conv.taskId.slice(0, 8) }}</span>
+            </div>
+            <div class="mg-row">
+              <span class="mg-preview">
+                <span class="mg-direction mg-direction-me"  *ngIf="isFromMeTask(conv)">You: </span>
+                <span class="mg-direction mg-direction-them" *ngIf="!isFromMeTask(conv)">{{ conv.contactedUserName.split(' ')[0] }}: </span>
+                {{ preview(conv.lastText) }}
+              </span>
+              <span class="mg-unread-pip" *ngIf="!conv.isSeen && !isFromMeTask(conv)"></span>
+            </div>
+          </div>
+        </li>
+      </ul>
+
+    </ng-container>
+
+    <!-- ——— Projects ——— -->
+    <ng-container *ngIf="activeTab() === 'projects'">
+
+      <div class="mg-state" *ngIf="isLoadingProjects()">
+        <div class="mg-spinner"></div>
+        <span>Loading…</span>
+      </div>
+
+      <div class="mg-state mg-state-error" *ngIf="errorProjects()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        {{ errorProjects() }}
+      </div>
+
+      <div class="mg-state" *ngIf="!isLoadingProjects() && !errorProjects() && projectConversations.length === 0">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#c7cdd6" stroke-width="1.4">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <p>No project conversations yet</p>
+      </div>
+
+      <ul class="mg-list" *ngIf="!isLoadingProjects() && !errorProjects() && projectConversations.length > 0">
+        <li
+          *ngFor="let conv of projectConversations"
+          class="mg-item"
+          [class.mg-item-unread]="!conv.isSeen && !isFromMeProject(conv)"
+          [class.mg-item-active]="selectedProject()?.projectId === conv.projectId"
+          (click)="selectProject(conv)"
+        >
+          <div class="mg-avatar">
+            <img *ngIf="conv.contactedUserPicture"
+                 [src]="getpicurl(conv.contactedUserPicture!)"
+                 [alt]="conv.contactedUserName"
+                 class="mg-avatar-img" />
+            <span *ngIf="!conv.contactedUserPicture" class="mg-avatar-initial">
+              {{ initial(conv.contactedUserName) }}
+            </span>
+            <span class="mg-unseen-dot" *ngIf="!conv.isSeen && !isFromMeProject(conv)"></span>
+          </div>
+
+          <div class="mg-content">
+            <div class="mg-row">
+              <span class="mg-name">{{ conv.contactedUserName }}</span>
+              <span class="mg-time">{{ formatTime(conv.lastDate) }}</span>
+            </div>
+            <div class="mg-row mg-row-sub">
+              <span class="mg-ticket-id">#{{ conv.projectId.slice(0, 8) }}</span>
+            </div>
+            <div class="mg-row">
+              <span class="mg-preview">
+                <span class="mg-direction mg-direction-me"  *ngIf="isFromMeProject(conv)">You: </span>
+                <span class="mg-direction mg-direction-them" *ngIf="!isFromMeProject(conv)">{{ conv.contactedUserName.split(' ')[0] }}: </span>
+                {{ preview(conv.lastText) }}
+              </span>
+              <span class="mg-unread-pip" *ngIf="!conv.isSeen && !isFromMeProject(conv)"></span>
+            </div>
+          </div>
+        </li>
+      </ul>
+
+    </ng-container>
+
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════
+       RIGHT — Chat panel
+  ══════════════════════════════════════════════════════════════ -->
+  <main class="mg-main">
+
+    <!-- Tickets: nothing selected -->
+    <div class="mg-placeholder" *ngIf="activeTab() === 'tickets' && !selected()">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.3">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <p class="mg-placeholder-title">Select a conversation</p>
+      <p class="mg-placeholder-sub">Pick a ticket message from the list to start chatting</p>
+    </div>
+
+    <!-- Tasks: nothing selected -->
+    <div class="mg-placeholder" *ngIf="activeTab() === 'tasks' && !selectedTask()">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.3">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <p class="mg-placeholder-title">Select a conversation</p>
+      <p class="mg-placeholder-sub">Pick a task message from the list to start chatting</p>
+    </div>
+
+    <!-- Projects: nothing selected -->
+    <div class="mg-placeholder" *ngIf="activeTab() === 'projects' && !selectedProject()">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.3">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <p class="mg-placeholder-title">Select a conversation</p>
+      <p class="mg-placeholder-sub">Pick a project message from the list to start chatting</p>
+    </div>
+
+    <!-- Direct: nothing selected -->
+    <div class="mg-placeholder" *ngIf="activeTab() === 'direct' && !selectedUser()">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.3">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <p class="mg-placeholder-title">Select a conversation</p>
+      <p class="mg-placeholder-sub">Choose someone from the list or load employees to start</p>
+    </div>
+
+    <!-- Active ticket conversation -->
+    <ng-container *ngIf="activeTab() === 'tickets' && selected() as conv">
+
+      <div class="mg-chat-header">
+        <div class="mg-chat-who">
+          <div class="mg-chat-avatar">
+            <img *ngIf="conv.contactedUserPicture"
+                 [src]="getpicurl(conv.contactedUserPicture!)"
+                 [alt]="conv.contactedUserName"
+                 class="mg-avatar-img" />
+            <span *ngIf="!conv.contactedUserPicture" class="mg-avatar-initial mg-avatar-sm">
+              {{ initial(conv.contactedUserName) }}
+            </span>
+          </div>
+          <div class="mg-chat-info">
+            <span class="mg-chat-name">{{ conv.contactedUserName }}</span>
+            <span class="mg-chat-sub">Ticket conversation</span>
+          </div>
+        </div>
+
+        <button class="mg-details-btn" (click)="goToDetails()" title="Open full ticket">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          View ticket details
+        </button>
+      </div>
+
+      <div class="mg-chat-body">
+        <app-ticket-chat-component
+          [ticketId]="conv.ticketId"
+          [otherpartId]="conv.contactedUserId"
+        ></app-ticket-chat-component>
+      </div>
+
+    </ng-container>
+
+    <!-- Active task conversation -->
+    <ng-container *ngIf="activeTab() === 'tasks' && selectedTask() as tconv">
+
+      <div class="mg-chat-header">
+        <div class="mg-chat-who">
+          <div class="mg-chat-avatar">
+            <img *ngIf="tconv.contactedUserPicture"
+                 [src]="getpicurl(tconv.contactedUserPicture!)"
+                 [alt]="tconv.contactedUserName"
+                 class="mg-avatar-img" />
+            <span *ngIf="!tconv.contactedUserPicture" class="mg-avatar-initial mg-avatar-sm">
+              {{ initial(tconv.contactedUserName) }}
+            </span>
+          </div>
+          <div class="mg-chat-info">
+            <span class="mg-chat-name">{{ tconv.contactedUserName }}</span>
+            <span class="mg-chat-sub">Task conversation</span>
+          </div>
+        </div>
+
+        <button class="mg-details-btn" (click)="goToTaskDetails()" title="Open full task">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          View task details
+        </button>
+      </div>
+
+      <div class="mg-chat-body">
+        <app-task-chat-component
+          [taskId]="tconv.taskId"
+        ></app-task-chat-component>
+      </div>
+
+    </ng-container>
+
+    <!-- Active project conversation -->
+    <ng-container *ngIf="activeTab() === 'projects' && selectedProject() as pconv">
+
+      <div class="mg-chat-header">
+        <div class="mg-chat-who">
+          <div class="mg-chat-avatar">
+            <img *ngIf="pconv.contactedUserPicture"
+                 [src]="getpicurl(pconv.contactedUserPicture!)"
+                 [alt]="pconv.contactedUserName"
+                 class="mg-avatar-img" />
+            <span *ngIf="!pconv.contactedUserPicture" class="mg-avatar-initial mg-avatar-sm">
+              {{ initial(pconv.contactedUserName) }}
+            </span>
+          </div>
+          <div class="mg-chat-info">
+            <span class="mg-chat-name">{{ pconv.contactedUserName }}</span>
+            <span class="mg-chat-sub">Project conversation</span>
+          </div>
+        </div>
+
+        <button class="mg-details-btn" (click)="goToProjectDetails()" title="Open full project">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          View project details
+        </button>
+      </div>
+
+      <div class="mg-chat-body">
+        <app-project-chat-component
+          [projectId]="pconv.projectId"
+        ></app-project-chat-component>
+      </div>
+
+    </ng-container>
+
+    <!-- Active direct (user) conversation -->
+    <ng-container *ngIf="activeTab() === 'direct' && selectedUser() as uconv">
+
+      <div class="mg-chat-header">
+        <div class="mg-chat-who">
+          <div class="mg-chat-avatar">
+            <img *ngIf="uconv.contactedUserPicture"
+                 [src]="getpicurl(uconv.contactedUserPicture!)"
+                 [alt]="uconv.contactedUserName"
+                 class="mg-avatar-img" />
+            <span *ngIf="!uconv.contactedUserPicture" class="mg-avatar-initial mg-avatar-sm">
+              {{ initial(uconv.contactedUserName) }}
+            </span>
+          </div>
+          <div class="mg-chat-info">
+            <span class="mg-chat-name">{{ uconv.contactedUserName }}</span>
+            <span class="mg-chat-sub">Direct message</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mg-chat-body">
+        <app-user-chat-component [otherUserId]="uconv.otherUserId"></app-user-chat-component>
+      </div>
+
+    </ng-container>
+
+  </main>
+
+  <!-- Choose user (modal) -->
+  <div
+    class="mg-modal-backdrop"
+    *ngIf="pickUserModalOpen()"
+    (click)="closePickUserModal()"
+    role="presentation"
+  >
+    <div
+      class="mg-modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mg-pick-user-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="mg-modal-head">
+        <h2 id="mg-pick-user-title" class="mg-modal-title">Choose someone to message</h2>
+        <button type="button" class="mg-modal-close" (click)="closePickUserModal()" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mg-modal-toolbar">
+        <button
+          type="button"
+          class="mg-modal-refresh"
+          (click)="loadPickUsers(pickUserSearch, 1, false)"
+          [disabled]="directoryLoading()"
+        >
+          {{ directoryLoading() ? 'Loading…' : (pickUsersLoaded ? 'Refresh list' : 'Load employees') }}
+        </button>
+      </div>
+
+      <p class="mg-modal-error" *ngIf="directoryError()">{{ directoryError() }}</p>
+
+      <div class="mg-modal-search-wrap" *ngIf="pickUsers().length > 0 || pickUsersLoaded">
+        <input
+          type="search"
+          class="mg-modal-search"
+          [ngModel]="pickUserSearch"
+          (ngModelChange)="onPickUserSearchInput($event)"
+          placeholder="Search by name, username, or employee number"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="mg-modal-loading" *ngIf="directoryLoading() && pickUsers().length === 0">
+        <div class="mg-spinner"></div>
+        <span>Loading employees…</span>
+      </div>
+
+      <ul class="mg-modal-list" *ngIf="pickUsers().length > 0">
+        <li
+          *ngFor="let emp of modalFilteredEmployees"
+          class="mg-modal-row"
+          (click)="pickEmployeeFromModal(emp)"
+        >
+          <div class="mg-modal-avatar">
+            <img
+              *ngIf="employeePictureUrl(emp)"
+              [src]="employeePictureUrl(emp)!"
+              [alt]="emp.employeeName || emp.userName"
+            />
+            <span *ngIf="!employeePictureUrl(emp)" class="mg-modal-avatar-initial">
+              {{ initial(emp.employeeName || emp.userName) }}
+            </span>
+          </div>
+          <div class="mg-modal-row-text">
+            <span class="mg-modal-name">{{ emp.employeeName || emp.userName }}</span>
+            <span class="mg-modal-meta">&#64;{{ emp.userName || '—' }} · #{{ emp.employeeNumber }}</span>
+          </div>
+        </li>
+      </ul>
+
+      <div class="mg-modal-toolbar" *ngIf="pickUsers().length > 0 && pickUsersHasMore()">
+        <button
+          type="button"
+          class="mg-modal-refresh"
+          (click)="loadMorePickUsers()"
+          [disabled]="directoryLoading()"
+        >
+          {{ directoryLoading() ? 'Loading…' : 'Load more' }}
+        </button>
+      </div>
+
+      <p class="mg-modal-empty" *ngIf="pickUsersLoaded && pickUsers().length === 0 && !directoryLoading()">
+        {{ pickUserSearch.trim() ? 'No one matches your search.' : 'No employees returned from the server.' }}
+      </p>
+      <p class="mg-modal-hint" *ngIf="!pickUsersLoaded && !directoryLoading() && !directoryError()">
+        Tap “Load employees” above to fetch the directory.
+      </p>
+    </div>
+  </div>
+
+</div>

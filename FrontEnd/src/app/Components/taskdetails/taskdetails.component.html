@@ -1,0 +1,429 @@
+<div class="td-page tk-details-page">
+
+  <div class="td-topbar">
+    <a *ngIf="task as t0" [routerLink]="['/projectdetails', t0.projectId]" class="td-back">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to project
+    </a>
+    <a *ngIf="!task && !isLoading" routerLink="/projects" class="td-back">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Projects
+    </a>
+  </div>
+
+  <div *ngIf="isLoading" class="td-loading">
+    <div class="td-spinner"></div>
+    <p>Loading task…</p>
+  </div>
+
+  <div *ngIf="!isLoading && !task" class="td-empty">
+    <p>Task not found.</p>
+    <a routerLink="/projects" class="td-btn td-btn-outline" style="margin-top:1rem;display:inline-flex;">Back to projects</a>
+  </div>
+
+  <ng-container *ngIf="!isLoading && task as tk">
+
+    <div class="td-layout">
+      <div class="td-main">
+
+        <div class="td-card td-header-card tk-header-card">
+          <div class="td-subject-row">
+            <h1 class="td-subject">{{ tk.description || 'Task' }}</h1>
+            <div class="td-badges">
+              <span class="td-status-badge" *ngIf="currentStatus() as st"
+                [style.background]="st.color + '22'"
+                [style.color]="st.color">
+                <span class="td-dot" [style.background]="st.color"></span>
+                {{ st.name }}
+              </span>
+              <span class="td-status-badge" *ngIf="!currentStatus()" style="background:#f1f5f9;color:#64748b;">
+                <span class="td-dot" style="background:#94a3b8"></span>
+                No status
+              </span>
+              <span class="td-priority" [class]="'prio-' + (tk.priority != null ? tk.priority : 'na')">
+                {{ priorityLabel(tk.priority) }}
+              </span>
+              <span class="tk-state-badge tk-state-closed" *ngIf="tk.isClosed">Closed</span>
+              <span class="tk-state-badge tk-state-open" *ngIf="!tk.isClosed">Open</span>
+            </div>
+          </div>
+
+          <div class="td-meta-grid">
+            <div class="td-meta-pair">
+              <div class="td-meta-cell">
+                <span class="td-meta-key td-key-from">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  Assignee
+                </span>
+                <span class="td-person-chip td-chip-from">{{ taskAssigneeLabel(tk) }}</span>
+              </div>
+              <div class="td-meta-cell" *ngIf="currentAssignHistory() as ah">
+                <span class="td-meta-key td-key-assigned">Last assign change</span>
+                <span class="td-person-chip td-chip-assigned">{{ assignHistoryUserLabel(ah) }}</span>
+              </div>
+            </div>
+            <div class="td-meta-pair">
+              <div class="td-meta-cell">
+                <span class="td-meta-key">Project</span>
+                <a class="td-person-chip td-chip-to tk-project-link" [routerLink]="['/projectdetails', tk.projectId]">
+                  <ng-container *ngIf="project as pr">
+                    {{ pr.description | slice:0:48 }}{{ pr.description.length > 48 ? '…' : '' }}
+                  </ng-container>
+                  <ng-container *ngIf="!project">Open project</ng-container>
+                </a>
+              </div>
+              <div class="td-meta-cell">
+                <span class="td-meta-key td-key-id">Task ID</span>
+                <span class="td-id">{{ tk.id }}</span>
+              </div>
+            </div>
+            <div class="td-meta-pair">
+              <div class="td-meta-cell">
+                <span class="td-meta-key">Created</span>
+                <span class="td-id" style="font-family:inherit;font-size:0.85rem;color:var(--c-text);">
+                  {{ tk.creationDate | date:'medium' }}
+                </span>
+              </div>
+              <div class="td-meta-cell" *ngIf="tk.blockingEmployeeId || tk.blockingEmployeeName">
+                <span class="td-meta-key">Blocking employee</span>
+                <span class="td-id" style="font-family:inherit;font-size:0.85rem;color:var(--c-text);">
+                  {{ tk.blockingEmployeeName || tk.blockingEmployeeId }}
+                </span>
+              </div>
+              <div class="td-meta-cell">
+                <span class="td-meta-key">Schedule</span>
+                <span class="td-id" style="font-family:inherit;font-size:0.85rem;color:var(--c-text);">
+                  {{ tk.startDate | date:'mediumDate' }} → {{ tk.endDate | date:'mediumDate' }}
+                </span>
+              </div>
+            </div>
+            <div class="td-meta-pair" *ngIf="tk.finishDate">
+              <div class="td-meta-cell td-meta-cell-full">
+                <span class="td-meta-key">Finished</span>
+                <span>{{ tk.finishDate | date:'mediumDate' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="td-actions" *ngIf="canManage()">
+            <button type="button" class="td-btn td-btn-outline" (click)="openStatusModal()">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.75"/><path d="M8 5v3l2 1" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+              Change status
+            </button>
+            <button type="button" class="td-btn td-btn-outline" (click)="openAssignModal()">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.75"/><path d="M1 13c0-2.761 2.239-5 5-5h1" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><path d="M12 10v4m-2-2h4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+              Reassign
+            </button>
+            <label class="td-btn td-btn-outline tk-upload-label" [class.tk-upload-busy]="uploading()">
+              <input type="file" multiple hidden [disabled]="uploading()" (change)="onUploadAttachments($event)" />
+              {{ uploading() ? 'Uploading…' : 'Add attachments' }}
+            </label>
+            <button type="button" class="td-btn td-btn-ghost-sm" (click)="openStatusHistoryModal()">Status history</button>
+            <button type="button" class="td-btn td-btn-ghost-sm" (click)="openAssignHistoryModal()">Assign history</button>
+            <button type="button" class="td-btn td-btn-ghost-sm" style="color:#b91c1c;" (click)="deleteTask()">Delete task</button>
+          </div>
+          <p class="tk-upload-err" *ngIf="uploadError()">{{ uploadError() }}</p>
+        </div>
+
+        <div class="td-card td-attachments" *ngIf="tk.attachments.length">
+          <div class="td-section-label">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M11.5 9.5l-5 5a3.536 3.536 0 01-5-5l7-7a2.357 2.357 0 013.333 3.333L5.167 12.5a1.179 1.179 0 01-1.667-1.667L9.5 4.833" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            {{ tk.attachments.length }} Attachment{{ tk.attachments.length > 1 ? 's' : '' }}
+          </div>
+          <ul class="td-attach-list">
+            <li *ngFor="let att of tk.attachments">
+              <a class="td-attach-link" [href]="taskAttachmentHref(tk.id, att)" target="_blank" rel="noopener" download>
+                {{ getFileName(att) }}
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="td-card td-attachments tk-assigned-attachments" *ngIf="tk.assignedAttachments.length">
+          <div class="td-section-label">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M11.5 9.5l-5 5a3.536 3.536 0 01-5-5l7-7a2.357 2.357 0 013.333 3.333L5.167 12.5a1.179 1.179 0 01-1.667-1.667L9.5 4.833" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            {{ tk.assignedAttachments.length }} Assigned attachment{{ tk.assignedAttachments.length > 1 ? 's' : '' }}
+          </div>
+          <ul class="td-attach-list">
+            <li *ngFor="let att of tk.assignedAttachments">
+              <a class="td-attach-link" [href]="taskAttachmentHref(tk.id, att)" target="_blank" rel="noopener" download>
+                {{ getFileName(att) }}
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="tk-chat-wrap" *ngIf="taskId">
+          <app-task-chat-component
+            [taskId]="taskId"
+            [taskAssigneeUserId]="tk.userId"
+            [taskPeerUserId]="projectOwnerUserId()"
+          ></app-task-chat-component>
+        </div>
+      </div>
+
+      <aside class="td-sidebar tk-sidebar">
+        <div class="td-card td-notes-sidebar tk-notes-sidebar">
+          <div class="td-section-label">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 2h10a1 1 0 011 1v9a1 1 0 01-1 1H6l-3 2V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            Private notes
+            <span class="td-badge-count" *ngIf="notes.length">{{ notes.length }}</span>
+          </div>
+          <div class="td-notes-list" *ngIf="notes.length; else tkNoNotes">
+            <div *ngFor="let n of notes; let i = index" class="td-note-item">
+              <span class="td-note-index">{{ i + 1 }}</span>
+              <p class="td-note-text">{{ n }}</p>
+            </div>
+          </div>
+          <ng-template #tkNoNotes>
+            <p class="td-notes-empty">No private notes yet.</p>
+          </ng-template>
+          <div class="td-add-note" *ngIf="canManage()">
+            <textarea class="td-note-input" rows="3" [(ngModel)]="note" placeholder="Write a private note…"></textarea>
+            <button type="button" class="td-btn td-btn-primary td-note-submit" (click)="addPrivateNote()" [disabled]="!note.trim()">
+              Add note
+            </button>
+          </div>
+        </div>
+
+        <div class="td-card td-notes-sidebar tk-notes-sidebar tk-subtasks-card" *ngIf="canViewSubTasks()">
+          <div class="td-section-label">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3z" stroke="currentColor" stroke-width="1.5"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Accomplished Subtasks
+            <span class="td-badge-count" *ngIf="subTasks.length">{{ subTasks.length }}</span>
+          </div>
+
+          <p class="tk-subtask-msg tk-subtask-msg--err" *ngIf="subTaskError()">{{ subTaskError() }}</p>
+          <p class="tk-subtask-msg tk-subtask-msg--ok" *ngIf="subTaskSuccess()">{{ subTaskSuccess() }}</p>
+
+          <div class="td-notes-list" *ngIf="subTasks.length; else tkNoSubTasks">
+            <div *ngFor="let st of subTasks; let i = index" class="td-note-item">
+              <div *ngIf="isRelatedToTask(st)">
+
+                <span class="td-note-index">{{ i + 1 }}</span>
+                <div class="tk-subtask-body">
+                  <p class="td-note-text">{{ st.description }}</p>
+                <p class="tk-subtask-meta">{{ subTaskUserLabel(st) }} · {{ st.date | date:'MMM d, y' }}</p>
+                <div class="tk-subtask-kpi-row" *ngIf="canManageSubTaskKpi(st)">
+                  <span class="tk-subtask-kpi-chip" *ngIf="st.kpi">KPI: {{ subTaskKpiName(st) }}</span>
+                  <button
+                    *ngIf="!st.kpi"
+                    type="button"
+                    class="td-btn td-btn-ghost tk-subtask-kpi-btn"
+                    (click)="openSubTaskKpiModalPrompt(st)"
+                    [disabled]="subTaskKpiBusyId() === st.id">
+                    {{ subTaskKpiBusyId() === st.id ? 'Adding KPI…' : 'Add KPI' }}
+                  </button>
+                </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ng-template #tkNoSubTasks>
+            <p class="td-notes-empty">No subtasks yet.</p>
+          </ng-template>
+
+          <div class="td-add-note" *ngIf="canCreateSubTask()">
+            <textarea
+              class="td-note-input"
+              rows="2"
+              [(ngModel)]="subTaskDescription"
+              placeholder="What subtask did you accomplish?"></textarea>
+            <input class="tk-subtask-date" type="date" [(ngModel)]="subTaskDate" />
+            <button
+              type="button"
+              class="td-btn td-btn-primary td-note-submit"
+              (click)="createSubTask()"
+              [disabled]="!subTaskDescription.trim() || !subTaskDate || creatingSubTask()">
+              {{ creatingSubTask() ? 'Adding…' : 'Add Subtask' }}
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="td-modal-overlay" *ngIf="subTaskKpiModal() as kpiSubTask" (mousedown)="closeSubTaskKpiModalPrompt()">
+      <div class="td-modal td-kpi-create-modal" (mousedown)="$event.stopPropagation()">
+        <div class="td-modal-header">
+          <div>
+            <div class="td-modal-title">Add KPI</div>
+            <div class="td-modal-sub">Subtask: {{ kpiSubTask.description || kpiSubTask.id }}</div>
+          </div>
+          <button type="button" class="td-close-btn" (click)="closeSubTaskKpiModalPrompt()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="td-modal-body">
+          <div class="td-kpi-create-field">
+            <label class="td-kpi-create-label">Use fixed KPI?</label>
+            <div class="td-kpi-create-toggle">
+              <button
+                type="button"
+                class="td-kpi-create-choice"
+                [class.td-kpi-create-choice--active]="!subTaskUseFixedKpi()"
+                (click)="subTaskUseFixedKpi.set(false)">
+                No
+              </button>
+              <button
+                type="button"
+                class="td-kpi-create-choice"
+                [class.td-kpi-create-choice--active]="subTaskUseFixedKpi()"
+                (click)="subTaskUseFixedKpi.set(true)">
+                Yes
+              </button>
+            </div>
+          </div>
+
+          <div class="td-kpi-create-field" *ngIf="subTaskUseFixedKpi()">
+            <label class="td-kpi-create-label">Fixed KPI</label>
+            <select
+              class="td-task-date"
+              [ngModel]="subTaskSelectedFixedKpiId()"
+              (ngModelChange)="subTaskSelectedFixedKpiId.set($event)"
+              [disabled]="subTaskFixedKpisLoading()">
+              <option value="">Select fixed KPI</option>
+              <option *ngFor="let k of subTaskFixedKpis()" [value]="k.id">{{ k.name }}</option>
+            </select>
+            <div class="td-kpi-create-hint" *ngIf="subTaskFixedKpisLoading()">Loading fixed KPIs…</div>
+          </div>
+
+          <p class="tk-subtask-msg tk-subtask-msg--err" *ngIf="subTaskKpiModalError()">{{ subTaskKpiModalError() }}</p>
+        </div>
+        <div class="td-modal-footer">
+          <button
+            type="button"
+            class="td-btn td-btn-primary"
+            (click)="submitSubTaskKpi()"
+            [disabled]="subTaskKpiBusyId() === kpiSubTask.id">
+            {{ subTaskKpiBusyId() === kpiSubTask.id ? 'Creating…' : (subTaskUseFixedKpi() ? 'Create with fixed KPI' : 'Create KPI now') }}
+          </button>
+          <button type="button" class="td-btn td-btn-ghost" (click)="closeSubTaskKpiModalPrompt()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status modal -->
+    <div class="td-modal-overlay" *ngIf="showStatusModal()" (mousedown)="closeStatusModal()">
+      <div class="td-modal" (mousedown)="$event.stopPropagation()">
+        <div class="td-modal-header">
+          <div>
+            <div class="td-modal-title">Change status</div>
+            <div class="td-modal-sub">Pick a status for this task</div>
+          </div>
+          <button type="button" class="td-close-btn" (click)="closeStatusModal()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="td-modal-body">
+          <div class="td-search-wrap">
+            <input class="td-search" type="text" placeholder="Search statuses…"
+              [value]="statusSearch()" (input)="statusSearch.set($any($event.target).value)" />
+          </div>
+          <div class="td-picker">
+            <button type="button" *ngFor="let s of filteredStatuses()" class="td-picker-item"
+              [class.selected]="selectedStatusId() === s.id" (click)="pickStatus(s.id)">
+              <span class="td-status-dot" [style.background]="s.color"></span>
+              <span class="td-picker-label">{{ s.name }}</span>
+            </button>
+            <div class="td-picker-empty" *ngIf="filteredStatuses().length === 0">No matches</div>
+          </div>
+        </div>
+        <div class="td-modal-footer">
+          <button type="button" class="td-btn td-btn-ghost" (click)="closeStatusModal()">Cancel</button>
+          <button type="button" class="td-btn td-btn-primary" (click)="applyStatus()"
+            [disabled]="!selectedStatusId() || applyingStatus()">
+            {{ applyingStatus() ? 'Updating…' : 'Update' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assign modal -->
+    <div class="td-modal-overlay" *ngIf="showAssignModal()" (mousedown)="closeAssignModal()">
+      <div class="td-modal" (mousedown)="$event.stopPropagation()">
+        <div class="td-modal-header">
+          <div>
+            <div class="td-modal-title">Reassign task</div>
+            <div class="td-modal-sub">Select a user</div>
+          </div>
+          <button type="button" class="td-close-btn" (click)="closeAssignModal()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="td-modal-body">
+          <div class="td-search-wrap">
+            <input class="td-search" type="text" placeholder="Search users…"
+              [value]="agentSearch()" (input)="agentSearch.set($any($event.target).value)" />
+          </div>
+          <div class="td-picker">
+            <button type="button" *ngFor="let a of filteredAgents()" class="td-picker-item"
+              [class.selected]="selectedUserId() === a.userdataresponse.userId" (click)="pickAgent(a.userdataresponse.userId)">
+              <span class="td-avatar">{{ (a.userdataresponse.userName || '?').charAt(0).toUpperCase() }}</span>
+              <span class="td-picker-info">
+                <span class="td-picker-label">{{ assignModalAgentLabel(a) }}</span>
+                <span class="td-picker-sub">({{ a.userdataresponse.employeeNumber }}) {{ a.userdataresponse.userName }}</span>
+                <span class="td-picker-workload">
+                  <span class="td-workload-chip">Tickets: {{ a.numberOfAssignedActiveTicketss }}</span>
+                  <span class="td-workload-chip">Project Tasks: {{ a.numberOfAssignedActiveProjectTasks }}</span>
+                </span>
+              </span>
+            </button>
+            <div class="td-picker-empty" *ngIf="filteredAgents().length === 0">No matches</div>
+          </div>
+        </div>
+        <div class="td-modal-footer">
+          <button type="button" class="td-btn td-btn-ghost" (click)="closeAssignModal()">Cancel</button>
+          <button type="button" class="td-btn td-btn-primary" (click)="applyAssign()"
+            [disabled]="!selectedUserId() || applyingAssign()">
+            {{ applyingAssign() ? 'Saving…' : 'Assign' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status history -->
+    <div class="td-modal-overlay" *ngIf="showStatusHistoryModal()" (mousedown)="closeStatusHistoryModal()">
+      <div class="td-modal td-modal-wide" (mousedown)="$event.stopPropagation()">
+        <div class="td-modal-header">
+          <div class="td-modal-title">Status history</div>
+          <button type="button" class="td-close-btn" (click)="closeStatusHistoryModal()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="td-modal-body tk-history-body">
+          <ul class="tk-history-list" *ngIf="statusHistory.length; else tkNoSt">
+            <li *ngFor="let h of statusHistory" class="tk-history-item">
+              <span class="tk-history-date">{{ h.date | date:'medium' }}</span>
+              <span class="td-status-badge tk-history-badge"
+                [style.background]="h.response.color + '22'"
+                [style.color]="h.response.color">{{ h.response.name }}</span>
+            </li>
+          </ul>
+          <ng-template #tkNoSt><p class="td-notes-empty">No history.</p></ng-template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assign history -->
+    <div class="td-modal-overlay" *ngIf="showAssignHistoryModal()" (mousedown)="closeAssignHistoryModal()">
+      <div class="td-modal td-modal-wide" (mousedown)="$event.stopPropagation()">
+        <div class="td-modal-header">
+          <div class="td-modal-title">Assignment history</div>
+          <button type="button" class="td-close-btn" (click)="closeAssignHistoryModal()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="td-modal-body tk-history-body">
+          <ul class="tk-history-list" *ngIf="assignHistories.length; else tkNoAh">
+            <li *ngFor="let a of assignHistories" class="tk-history-item">
+              <span class="tk-history-date">{{ a.assignDate | date:'medium' }}</span>
+              <span>{{ assignHistoryUserLabel(a) }}</span>
+            </li>
+          </ul>
+          <ng-template #tkNoAh><p class="td-notes-empty">No history.</p></ng-template>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+</div>

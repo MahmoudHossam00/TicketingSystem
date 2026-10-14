@@ -1,0 +1,6 @@
+Delete removal => done
+Email with edits => dont not tested
+Adding emails in cc for subrequests => model
+approval request comment => model
+comments on request on total for status  => model
+direct manager emails => model

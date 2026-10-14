@@ -1,0 +1,60 @@
+@if (showNavbar) {
+  <app-navbar></app-navbar>
+}
+@if (showGlobalWidgets && incomingGlobalCall() && !callSessionActive()) {
+  <div class="app-global-call-banner" role="alert" aria-live="assertive">
+    <div class="app-global-call-icon" aria-hidden="true">
+      @if (incomingGlobalCall()!.type === 'audio') {
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+        </svg>
+      } @else {
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 7l-7 5 7 5V7z"/>
+          <rect x="1" y="5" width="15" height="14" rx="2"/>
+        </svg>
+      }
+    </div>
+    <div class="app-global-call-content">
+      <p class="app-global-call-title">
+        Incoming {{ incomingGlobalCall()!.type }} call
+      </p>
+      <p class="app-global-call-subtitle">
+        {{ incomingGlobalCall()!.from }} is calling you
+      </p>
+    </div>
+    <div class="app-global-call-actions">
+      <button type="button" class="app-call-btn app-call-btn-accept" [disabled]="callActionBusy()" (click)="acceptGlobalIncomingCall()">
+        Accept
+      </button>
+      <button type="button" class="app-call-btn app-call-btn-decline" [disabled]="callActionBusy()" (click)="declineGlobalIncomingCall()">
+        Decline
+      </button>
+    </div>
+  </div>
+}
+@if (showGlobalWidgets && callSessionActive()) {
+  <div class="app-global-call-live">
+    <span class="app-global-call-live-dot"></span>
+    <span class="app-global-call-live-text">Call in progress</span>
+    <div class="app-global-call-actions">
+      <button type="button" class="app-call-btn app-call-btn-open" [disabled]="callActionBusy()" (click)="openMessengerForCall()">
+        Open chat
+      </button>
+      <button type="button" class="app-call-btn app-call-btn-decline" [disabled]="callActionBusy()" (click)="endGlobalCall()">
+        End
+      </button>
+    </div>
+  </div>
+}
+@if (showGlobalWidgets && globalCallError()) {
+  <div class="app-global-call-error">{{ globalCallError() }}</div>
+}
+@if (showGlobalWidgets) {
+  <app-newsletter-ticker></app-newsletter-ticker>
+}
+<router-outlet></router-outlet>
+@if (showGlobalWidgets) {
+  <app-alerts-panel></app-alerts-panel>
+}
+<audio #globalRemoteAudio autoplay playsinline style="display:none"></audio>

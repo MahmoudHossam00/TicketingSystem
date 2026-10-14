@@ -1,0 +1,143 @@
+<div class="submodule-questions-page">
+  <header class="page-header">
+    <h1 class="page-title">{{ subModule()?.name }}</h1>
+  </header>
+
+  <div class="questions-card">
+    <div class="card-toolbar">
+      <h2 class="card-title">Questions</h2>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="showaddquestion.set(true)">
+        Add Question
+      </button>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="questions-table">
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Options</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let question of questions()">
+            <tr>
+              <td>{{ question.questionHead }}</td>
+              <td>{{ typeOfQuestion[question.questionType] }}</td>
+              <td>
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    [checked]="question.isRequired"
+                    (change)="toggleRequired(question)" />
+                  {{ question.isRequired }}
+                </label>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  *ngIf="question.options?.length"
+                  (click)="toggleOptions(question.id)">
+                  {{ isExpanded(question.id) ? 'Hide' : 'Show' }} ({{ question.options?.length }})
+                </button>
+                <span *ngIf="!question.options?.length" class="muted">—</span>
+              </td>
+              <td>
+                <button type="button" class="btn btn-danger btn-sm" (click)="deleteQuestion(question.id)">
+                  Delete
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="isExpanded(question.id)" class="expandable-row">
+              <td colspan="5" class="expandable-cell">
+                <div class="options-panel">
+                  <div class="options-panel-header">
+                    <strong>Options</strong>
+                    <div class="inline-form">
+                      <input
+                        type="text"
+                        class="form-input"
+                        [(ngModel)]="optiontext"
+                        placeholder="Option text" />
+                      <button type="button" class="btn btn-success btn-sm" (click)="addOption(question.id)">
+                        + Add option
+                      </button>
+                    </div>
+                  </div>
+                  <p *ngIf="!question.options?.length" class="muted">No options.</p>
+                  <ul class="options-list" *ngIf="question.options?.length">
+                    <li *ngFor="let opt of question.options" class="options-list-item">
+                      <span>{{ opt.text }}</span>
+                      <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeOption(opt)">
+                        Remove
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-container *ngIf="showaddquestion()">
+      <div class="add-question-form">
+        <form [formGroup]="addquestionform">
+          <div class="form-group">
+            <label for="questionHead" class="form-label">Question Head</label>
+            <input
+              type="text"
+              class="form-input"
+              id="questionHead"
+              formControlName="questionHead"
+              placeholder="Enter question text" />
+          </div>
+          <div class="form-group">
+            <label for="questionType" class="form-label">Question Type</label>
+            <select class="form-select" id="questionType" formControlName="questionType">
+              <option *ngFor="let type of typeOfQuestionArray" [ngValue]="type">
+                {{ typeOfQuestion[type] }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group form-check-group">
+            <label class="checkbox-label">
+              <input type="checkbox" class="form-check-input" id="isRequired" formControlName="isRequired" />
+              Is Required
+            </label>
+          </div>
+          <div
+            class="form-group"
+            *ngIf="addquestionform.value.questionType === typeOfQuestion.MultipleChoice
+                || addquestionform.value.questionType === typeOfQuestion.SingleChoice">
+            <label class="form-label">Options</label>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="addOptionToForm()">
+              + Add option
+            </button>
+            <div formArrayName="options" class="options-form-array">
+              <div
+                class="option-row"
+                *ngFor="let ctrl of optionsFA.controls; let i = index">
+                <input class="form-input" [formControlName]="i" placeholder="Option text" />
+                <button type="button" class="btn btn-danger btn-sm" (click)="removeOptionAt(i)">
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+        <button type="button" class="btn btn-primary" (click)="addQuestion()">
+          Add Question
+        </button>
+      </div>
+    </ng-container>
+  </div>
+</div>

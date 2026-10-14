@@ -1,0 +1,141 @@
+<div class="zf-page">
+  <header class="zf-hero">
+    <p class="zf-kicker">Master only</p>
+    <h1 class="zf-title">Zen integration</h1>
+    <p class="zf-desc">
+      Pull from Zen, refresh Zen branch data, import employees, plus token helpers that POST to
+      <code>ZenServer</code> with credentials or a pass key. Uses <code>zenUrl</code> for Zen and the main
+      <code>apiUrl</code> for employee sync.
+    </p>
+  </header>
+
+  <div class="zf-card">
+    <div class="zf-banner zf-banner-ok" *ngIf="message()">{{ message() }}</div>
+    <div class="zf-banner zf-banner-err" *ngIf="error()">{{ error() }}</div>
+
+    <ul class="zf-action-list">
+      <li class="zf-action">
+        <div class="zf-action-text">
+          <h2 class="zf-action-title">Fetch from Zen endpoints</h2>
+          <p class="zf-action-desc">
+            Gets data from the main Zen HTTP service (POST to <code>zenUrl</code> … <code>EmployeeCount</code>).
+          </p>
+        </div>
+        <button
+          type="button"
+          class="zf-btn zf-btn-zen"
+          [disabled]="anyBusy()"
+          (click)="runFetchFromZen()">
+          <span *ngIf="!busyFetchZen()">Run</span>
+          <span *ngIf="busyFetchZen()">Running…</span>
+        </button>
+      </li>
+
+      <li class="zf-action">
+        <div class="zf-action-text">
+          <h2 class="zf-action-title">Zen server (branches)</h2>
+          <p class="zf-action-desc">
+            Updates the employee <strong>branches</strong> table on the Zen side (POST … <code>ZenServer</code>, empty body).
+          </p>
+        </div>
+        <button
+          type="button"
+          class="zf-btn zf-btn-secondary"
+          [disabled]="anyBusy()"
+          (click)="runUpdateZenServer()">
+          <span *ngIf="!busyZenServer()">Run</span>
+          <span *ngIf="busyZenServer()">Running…</span>
+        </button>
+      </li>
+
+      <li class="zf-action zf-action-form">
+        <div class="zf-action-text zf-form-block">
+          <h2 class="zf-action-title">Generate multiple tokens</h2>
+          <p class="zf-action-desc">
+            POST to <code>ZenServer</code> with <code>email</code> and <code>password</code>.
+          </p>
+          <div class="zf-form-row">
+            <label class="zf-label" for="zf-gen-email">Email</label>
+            <input
+              id="zf-gen-email"
+              type="email"
+              class="zf-input"
+              [(ngModel)]="genTokenEmail"
+              name="genTokenEmail"
+              autocomplete="username"
+            />
+          </div>
+          <div class="zf-form-row">
+            <label class="zf-label" for="zf-gen-pass">Password</label>
+            <input
+              id="zf-gen-pass"
+              type="password"
+              class="zf-input"
+              [(ngModel)]="genTokenPassword"
+              name="genTokenPassword"
+              autocomplete="current-password"
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          class="zf-btn zf-btn-amber"
+          [disabled]="anyBusy()"
+          (click)="runGenerateMultipleTokens()">
+          <span *ngIf="!busyGenTokens()">Run</span>
+          <span *ngIf="busyGenTokens()">Running…</span>
+        </button>
+      </li>
+
+      <li class="zf-action zf-action-form">
+        <div class="zf-action-text zf-form-block">
+          <h2 class="zf-action-title">Replace current</h2>
+          <p class="zf-action-desc">
+            POST to <code>ZenServer</code> with <code>passKey</code>.
+          </p>
+          <div class="zf-form-row zf-form-row--full">
+            <label class="zf-label" for="zf-replace-key">Pass key</label>
+            <input
+              id="zf-replace-key"
+              type="password"
+              class="zf-input"
+              [(ngModel)]="replacePassKey"
+              name="replacePassKey"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          class="zf-btn zf-btn-amber"
+          [disabled]="anyBusy()"
+          (click)="runReplaceCurrent()">
+          <span *ngIf="!busyReplacePass()">Run</span>
+          <span *ngIf="busyReplacePass()">Running…</span>
+        </button>
+      </li>
+
+      <li class="zf-action">
+        <div class="zf-action-text">
+          <h2 class="zf-action-title">Sync employees to this system</h2>
+          <p class="zf-action-desc">
+            Fetches employees from Zen into the <strong>current application</strong> (POST main API … <code>Employee</code>).
+          </p>
+        </div>
+        <button
+          type="button"
+          class="zf-btn zf-btn-primary"
+          [disabled]="anyBusy()"
+          (click)="runSyncEmployeesToSystem()">
+          <span *ngIf="!busySyncEmployees()">Run</span>
+          <span *ngIf="busySyncEmployees()">Running…</span>
+        </button>
+      </li>
+    </ul>
+
+    <p class="zf-hint">
+      Fetch / branches / sync use POST with an empty body where applicable. Token actions send JSON bodies to
+      <code>ZenServer</code>. Typical order: Zen pull → branches → import; run token tools only when your process requires them.
+    </p>
+  </div>
+</div>

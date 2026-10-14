@@ -1,0 +1,360 @@
+<div class="tc-wrap">
+
+  <div class="tc-header">
+    <div class="tc-header-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <span class="tc-header-title">Project live chat</span>
+
+    <span class="tc-conn-badge tc-conn-connecting" *ngIf="isConnecting()">
+      <span class="tc-conn-dot"></span> Connecting…
+    </span>
+    <span class="tc-conn-badge tc-conn-error" *ngIf="connectionError()">
+      <span class="tc-conn-dot"></span> Offline
+    </span>
+    <span class="tc-conn-badge tc-conn-live" *ngIf="!isConnecting() && !connectionError()">
+      <span class="tc-conn-dot"></span> Live
+    </span>
+  </div>
+
+  <div class="tc-readonly-banner" *ngIf="composeDisabled">
+    This project is closed — you can read the thread, but you cannot send messages or share your screen.
+  </div>
+
+  <!-- <div class="tc-share-request-banner" *ngIf="!composeDisabled && screenShare.incomingRequest() as fromId">
+    <div class="tc-share-req-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+    </div>
+    <span class="tc-share-req-text">
+      <strong>{{ getShareRequesterName(fromId) }}</strong> wants to share their screen on this project
+    </span>
+    <div class="tc-share-req-actions">
+      <button class="tc-share-btn-accept" type="button" (click)="acceptShare(fromId)">Accept</button>
+      <button class="tc-share-btn-decline" type="button" (click)="declineShare(fromId)">Decline</button>
+    </div>
+  </div> -->
+<!-- 
+  <div class="tc-share-waiting-banner" *ngIf="!composeDisabled && screenShare.isWaitingForAccept()">
+    <span class="tc-spin-sm"></span>
+    <span>Waiting for the other user to accept the project screen share request…</span>
+    <button type="button" class="tc-share-cancel-btn" (click)="cancelShareRequest()">Cancel</button>
+  </div> -->
+
+  <!-- <div class="tc-share-overlay" *ngIf="screenShare.isSharingScreen() || screenShare.isReceivingScreen()"> -->
+    <!-- <div class="tc-share-bar">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+      </svg> -->
+      <!-- <span *ngIf="screenShare.isSharingScreen() && !screenShare.isReceivingScreen()">You are sharing your screen</span> -->
+      <!-- <span *ngIf="screenShare.isReceivingScreen()">Viewing shared screen (project)</span> -->
+      <!-- <button type="button" class="tc-share-stop" (click)="stopShare()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="4" y="4" width="16" height="16" rx="2"/>
+        </svg>
+        Stop
+      </button>
+    </div> -->
+<!-- 
+    <div class="tc-share-stage">
+      <video #remoteVideo class="tc-share-remote" autoplay playsinline></video>
+      <video
+        #localVideo
+        class="tc-share-pip"
+        [class.tc-share-pip-visible]="screenShare.isSharingScreen()"
+        autoplay
+        playsinline
+        muted
+      ></video>
+    </div> -->
+  <!-- </div> -->
+
+  <div class="tc-body" #messageList>
+    <div class="tc-load-older" *ngIf="messages().length && hasMoreOlder()">
+      <button
+        type="button"
+        class="tc-load-older-btn"
+        (click)="loadOlderMessages()"
+        [disabled]="loadingOlder() || !canLoadOlderMessages()"
+        [title]="!canLoadOlderMessages() ? 'Message ids are required to load older history (check API includes id on each message).' : 'Load 20 older messages'"
+      >
+        {{ loadingOlder() ? 'Loading…' : 'Load older messages' }}
+      </button>
+    </div>
+    <div class="tc-empty" *ngIf="!messages().length && !isConnecting()">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#b0b8c4" stroke-width="1.5">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <p>No project messages yet. Say hello!</p>
+    </div>
+
+    <div class="tc-loading" *ngIf="isConnecting()">
+      <div class="tc-spinner"></div>
+      <p>Connecting to project chat…</p>
+    </div>
+
+    <ng-container *ngFor="let msg of messages(); trackBy: trackMessage">
+      <div class="tc-msg" [class.tc-mine]="isMyMessage(msg)" [class.tc-theirs]="!isMyMessage(msg)">
+        <!-- <div
+          class="tc-avatar"
+          *ngIf="!isMyMessage(msg)"
+          [attr.title]="msg.userName || msg.userId || ''"
+          [attr.aria-label]="'Avatar: ' + (msg.userName || msg.userId || 'User')"
+        >
+          <img
+            *ngIf="otherUserAvatarImageSrc(msg) && !otherUserAvatarBroken(msg)"
+            [src]="otherUserAvatarImageSrc(msg)!"
+            class="tc-avatar-img"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            (error)="onOtherUserAvatarError(msg)"
+          />
+          <span *ngIf="!otherUserAvatarImageSrc(msg) || otherUserAvatarBroken(msg)" class="tc-avatar-initial">
+            {{ otherUserAvatarInitials(msg) }}
+          </span>
+        </div> -->
+
+        <div
+          class="tc-avatar"
+          *ngIf="!isMyMessage(msg)"
+          [attr.title]="msg.userName || msg.userId || ''"
+          [attr.aria-label]="'Avatar: ' + (msg.userName || msg.userId || 'User')"
+        >
+          <img
+            *ngIf="msg.userPicture!=null"
+            [src]="getpicurl(msg.userPicture!)"
+            class="tc-avatar-img"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            (error)="onOtherUserAvatarError(msg)"
+          />
+          <span
+            *ngIf="!otherUserAvatarUrl(msg) || otherUserAvatarBroken(msg)"
+            class="tc-avatar-initial"
+          >{{ otherUserAvatarInitials(msg) }}</span>
+        </div>
+
+        <div class="tc-bubble-wrap">
+          <div class="tc-sender" *ngIf="!isMyMessage(msg)">{{ msg.userName || 'Unknown' }}</div>
+
+          <div class="tc-bubble">
+            <p class="tc-bubble-text" *ngIf="msg.text">{{ msg.text }}</p>
+
+            <div class="tc-images" *ngIf="msg.pictures && msg.pictures.length">
+              <button
+                *ngFor="let pic of msg.pictures"
+                class="tc-thumb-btn"
+                type="button"
+                (click)="openLightbox(pic)"
+                title="View full image"
+              >
+                <img [src]="getFileUrl(pic)" class="tc-thumb" [alt]="pic" loading="lazy" />
+                <span class="tc-thumb-overlay">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    <path d="M11 8v6M8 11h6"/>
+                  </svg>
+                </span>
+              </button>
+            </div>
+
+            <div class="tc-attachments" *ngIf="msg.attachments && msg.attachments.length">
+              <a
+                *ngFor="let att of msg.attachments"
+                [href]="getFileUrl(att)"
+                target="_blank"
+                rel="noopener"
+                class="tc-file-link"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+                {{ getAttachmentName(att) }}
+              </a>
+            </div>
+
+            <div class="tc-voice-list" *ngIf="msg.voiceRecords && msg.voiceRecords.length">
+              <div *ngFor="let rec of msg.voiceRecords" class="tc-voice-player">
+                <svg class="tc-voice-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+                <audio class="tc-audio" [src]="getFileUrl(rec)" controls preload="none"></audio>
+              </div>
+            </div>
+          </div>
+
+          <div class="tc-meta">
+            <span class="tc-time">{{ formatDate(msg.date) }}</span>
+            <span class="tc-seen tc-seen-read" *ngIf="msg.isSeen">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="17 3 9 16 4 11"/>
+                <polyline points="23 3 15 16 12 13"/>
+              </svg>
+              Seen
+            </span>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <div class="tc-error-bar" *ngIf="!composeDisabled && sendError()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    {{ sendError() }}
+  </div>
+
+  <div class="tc-compose" *ngIf="!composeDisabled" [class.tc-compose-sending]="isSending">
+    <div
+      class="tc-staged"
+      *ngIf="pendingPictures.length || pendingAttachments.length || pendingVoiceRecords.length"
+    >
+      <div class="tc-staged-group" *ngIf="pendingPictures.length">
+        <div *ngFor="let p of pendingPictures; let i = index" class="tc-staged-pic">
+          <img [src]="p.previewUrl" class="tc-staged-thumb" [alt]="p.file.name" />
+          <button type="button" class="tc-staged-remove" (click)="removePicture(i)" title="Remove">✕</button>
+        </div>
+      </div>
+      <div class="tc-staged-group" *ngIf="pendingAttachments.length">
+        <div *ngFor="let f of pendingAttachments; let i = index" class="tc-chip tc-chip-file">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+          <span class="tc-chip-name">{{ f.name }}</span>
+          <button type="button" class="tc-chip-remove" (click)="removeAttachment(i)" title="Remove">✕</button>
+        </div>
+      </div>
+      <div class="tc-staged-group" *ngIf="pendingVoiceRecords.length">
+        <div *ngFor="let v of pendingVoiceRecords; let i = index" class="tc-chip tc-chip-voice">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          </svg>
+          <audio [src]="v.previewUrl" controls class="tc-staged-audio" preload="metadata"></audio>
+          <span class="tc-chip-dur">{{ formatDuration(v.durationSecs) }}</span>
+          <button type="button" class="tc-chip-remove" (click)="removeVoiceRecord(i)" title="Remove">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tc-recording-bar" *ngIf="isRecording()">
+      <span class="tc-rec-dot"></span>
+      <span class="tc-rec-label">Recording {{ formatDuration(recordingSecs()) }}</span>
+      <button type="button" class="tc-rec-stop" (click)="stopRecording()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="4" y="4" width="16" height="16" rx="2"/>
+        </svg>
+        Stop
+      </button>
+    </div>
+
+    <div class="tc-compose-row">
+      <textarea
+        class="tc-input"
+        [(ngModel)]="newMessage"
+        (keydown.enter)="onEnter($event)"
+        placeholder="Type a project message… (Enter to send, Shift+Enter for new line)"
+        rows="1"
+        [disabled]="connectionError()"
+      ></textarea>
+
+      <div class="tc-toolbar">
+        <label class="tc-tool" title="Add images" [class.tc-tool-disabled]="connectionError()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <input type="file" accept="image/*" multiple hidden (change)="onPictureChange($event)" [disabled]="connectionError()" />
+        </label>
+
+        <label class="tc-tool" title="Attach file" [class.tc-tool-disabled]="connectionError()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+          <input type="file" multiple hidden (change)="onAttachmentChange($event)" [disabled]="connectionError()" />
+        </label>
+
+        <button
+          type="button"
+          class="tc-tool tc-tool-mic"
+          [class.tc-tool-mic-active]="isRecording()"
+          [title]="isRecording() ? 'Stop recording' : 'Record voice note'"
+          (click)="isRecording() ? stopRecording() : startRecording()"
+          [disabled]="connectionError()"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+
+        <!-- <button
+          *ngIf="targetUserId"
+          type="button"
+          class="tc-tool tc-tool-share"
+          [class.tc-tool-share-active]="screenShare.isSharingScreen()"
+          [title]="screenShare.isSharingScreen() ? 'Stop screen share' : 'Share your screen'"
+          (click)="screenShare.isSharingScreen() ? stopShare() : startShare()"
+          [disabled]="connectionError()"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+        </button> -->
+
+        <button type="button" class="tc-send" (click)="sendMessage()" [disabled]="!canSend" title="Send">
+          <span *ngIf="!isSending">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </span>
+          <span *ngIf="isSending" class="tc-spin-sm"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tc-lightbox" *ngIf="lightboxSrc()" (click)="closeLightbox()">
+  <div class="tc-lightbox-inner" (click)="$event.stopPropagation()">
+    <img [src]="lightboxSrc()!" class="tc-lightbox-img" alt="Full preview" />
+    <div class="tc-lightbox-bar">
+      <a [href]="lightboxSrc()!" target="_blank" rel="noopener" class="tc-lightbox-dl">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Open full size
+      </a>
+      <button type="button" class="tc-lightbox-close" (click)="closeLightbox()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- <div class="tc-share-error" *ngIf="screenShare.shareError()">
+  {{ screenShare.shareError() }}
+</div> -->

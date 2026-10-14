@@ -1,0 +1,68 @@
+@if (!isLoading() && alerts().length > 0) {
+
+  <!-- Minimized tab — only shown when all dismissed AND user minimized -->
+  @if (isMinimized()) {
+    <button class="alerts-minimized-tab" (click)="restore()" title="Show alerts">
+      🔔
+      <span class="alerts-minimized-label">Alerts</span>
+    </button>
+  } @else {
+    <div class="alerts-panel">
+      <div class="alerts-panel__header">
+        <span class="alerts-panel__title">🔔 Alerts</span>
+        <div class="alerts-panel__header-actions">
+          @if (hiddenAlerts().length > 0) {
+            <button class="alerts-panel__hidden-toggle" (click)="toggleShowHidden()">
+              {{ showHidden() ? 'Hide dismissed' : hiddenAlerts().length + ' dismissed' }}
+            </button>
+          }
+          <!-- Minimize only available once every alert is dismissed -->
+          @if (allDismissed()) {
+            <button class="alerts-panel__minimize" (click)="minimize()" title="Minimize">
+              ─
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Visible alerts -->
+      @if (visibleAlerts().length > 0) {
+        <ul class="alerts-list">
+          @for (alert of visibleAlerts(); track alert.id) {
+            <li class="alert-card">
+              <div class="alert-card__body">
+                <p class="alert-card__text">{{ alert.text }}</p>
+                <span class="alert-card__date">Until {{ formatDate(alert.endDate) }}</span>
+              </div>
+              <button class="alert-card__action alert-card__action--hide" (click)="toggleHide(alert)" title="Dismiss">
+                ✕
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="alerts-all-hidden">All alerts dismissed. You can minimize this panel.</p>
+      }
+
+      <!-- Re-show dismissed alerts -->
+      @if (showHidden() && hiddenAlerts().length > 0) {
+        <div class="alerts-hidden-section">
+          <span class="alerts-hidden-label">Dismissed</span>
+          <ul class="alerts-list alerts-list--hidden">
+            @for (alert of hiddenAlerts(); track alert.id) {
+              <li class="alert-card alert-card--hidden">
+                <div class="alert-card__body">
+                  <p class="alert-card__text alert-card__text--muted">{{ alert.text }}</p>
+                  <span class="alert-card__date">Until {{ formatDate(alert.endDate) }}</span>
+                </div>
+                <button class="alert-card__action alert-card__action--show" (click)="toggleHide(alert)" title="Restore alert">
+                  ↩
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+  }
+}
